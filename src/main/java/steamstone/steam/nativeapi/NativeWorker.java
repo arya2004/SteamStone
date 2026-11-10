@@ -9,6 +9,20 @@ import static steamstone.steam.nativeapi.NativeProtocol.*;
 /** One game/account per process. Never initializes Steam in the JavaFX process. */
 public final class NativeWorker {
     public static void main(String[] args) throws Exception {
+        if (args.length == 1 && args[0].equals("--check-runtime")) {
+            var loader = new SteamNativeLibraries(Path.of(".").toAbsolutePath());
+            SteamAPI.loadLibraries(loader);
+            try (var arena = java.lang.foreign.Arena.ofConfined()) {
+                var symbols = java.lang.foreign.SymbolLookup.libraryLookup(loader.path("steam_api"), arena);
+                for (String symbol : java.util.List.of("SteamAPI_SteamUserStats_v013",
+                        "SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute",
+                        "SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime")) {
+                    if (symbols.find(symbol).isEmpty()) throw new IllegalStateException("Missing Steam API symbol: " + symbol);
+                }
+            }
+            System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
+            return;
+        }
         if (args.length != 2) throw new IllegalArgumentException("Expected request and response paths.");
         var json = new ObjectMapper();
         Request request = json.readValue(Path.of(args[0]).toFile(), Request.class);

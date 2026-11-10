@@ -20,7 +20,10 @@ public final class NativeSteam {
             Path input = directory.resolve("request.json"), output = directory.resolve("response.json");
             json.writeValue(input.toFile(), request);
             Files.writeString(directory.resolve("steam_appid.txt"), Long.toString(request.appId()));
-            var builder = new ProcessBuilder(command(input, output));
+            var command = workerCommand();
+            command.add(input.toString());
+            command.add(output.toString());
+            var builder = new ProcessBuilder(command);
             builder.directory(directory.toFile());
             builder.environment().put("SteamAppId", Long.toString(request.appId()));
             builder.environment().put("SteamGameId", Long.toString(request.appId()));
@@ -48,10 +51,31 @@ public final class NativeSteam {
         }
     }
 
-    private List<String> command(Path input, Path output) throws Exception {
+    /** Packaging probe: exercise the same child launcher as real operations, without opening Steam. */
+    public void checkRuntime() throws Exception {
+        Path directory = Files.createTempDirectory("steamstone-runtime-check-");
+        Process process = null;
+        try {
+            var command = workerCommand();
+            command.add("--check-runtime");
+            process = new ProcessBuilder(command).directory(directory.toFile()).inheritIO().start();
+            if (!process.waitFor(30, TimeUnit.SECONDS)) throw new IllegalStateException("Bundled worker check timed out.");
+            if (process.exitValue() != 0) throw new IllegalStateException("Bundled Steam worker check failed.");
+        } finally {
+            if (process != null && process.isAlive()) { process.destroyForcibly(); process.waitFor(); }
+            try (var paths = Files.walk(directory)) {
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    private List<String> workerCommand() throws Exception {
         var command = new ArrayList<String>();
         // jpackage supplies a second launcher using the bundled runtime (no system JDK required).
-        Path packaged = Path.of(System.getProperty("java.home")).resolve("../../../MacOS/SteamStoneWorker").normalize();
+        String os = System.getProperty("os.name");
+        String worker = os.startsWith("Mac") ? "../../../MacOS/SteamStoneWorker"
+                : os.startsWith("Windows") ? "../SteamStoneWorker.exe" : "../../bin/SteamStoneWorker";
+        Path packaged = Path.of(System.getProperty("java.home")).resolve(worker).normalize();
         if (Files.isExecutable(packaged)) command.add(packaged.toString());
         else {
             String exe = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
@@ -68,8 +92,6 @@ public final class NativeSteam {
             command.add(String.join(File.pathSeparator, classpath));
             command.add(NativeWorker.class.getName());
         }
-        command.add(input.toString());
-        command.add(output.toString());
         return command;
     }
 }

@@ -6,7 +6,11 @@
   <artifactId>steamstone</artifactId>
   <version>0.1.0</version>
   <name>SteamStone</name>
-  <description>A quiet home for your Steam library.</description>
+  <description>A desktop Steam achievement editor.</description>
+  <url>https://github.com/arya2004/SteamStone</url>
+  <licenses>
+    <license><name>MIT License</name><url>https://opensource.org/license/mit</url><distribution>repo</distribution></license>
+  </licenses>
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
