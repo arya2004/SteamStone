@@ -13,3 +13,12 @@ Verified on an Apple Silicon Mac on 2026-11-11 using JDK 25.0.2 and JavaFX 25.0.
 The key was read from an existing file in the separate original SAM workspace solely for the approved integration check. The application does not auto-read this file. No key was copied into this repository, persisted by the app, or printed.
 
 Windows/Linux source run commands are documented but have not been runtime-tested. Their verification remains a later milestone.
+
+## Sidebar/editor layout revision
+
+- All 62 live library games rendered in the searchable sidebar; the game count appears only there.
+- Removed total playtime, games-played cards, playtime rows, and the sorting dashboard.
+- Selecting a sidebar game updates the main achievement workspace heading and App ID.
+- Achievement data and editing remain unimplemented; the workspace states that explicitly.
+- All 12 existing tests passed, the graphical selection/search check passed, and refreshed screenshots were visually inspected.
+- The macOS app bundle was rebuilt with the revised layout. Restart an older running instance to see the update.

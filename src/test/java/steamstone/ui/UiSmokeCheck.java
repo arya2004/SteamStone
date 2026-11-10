@@ -77,6 +77,14 @@ public final class UiSmokeCheck {
                 var list = (ListView<Game>) view.lookup("#game-list");
                 if (list.getItems().isEmpty()) throw new AssertionError("No UI rows loaded");
                 if (!((PasswordField) view.lookup("#api-key")).getText().isEmpty()) throw new AssertionError("Key field not cleared");
+                var selected = list.getItems().get(1);
+                list.getSelectionModel().select(selected);
+                if (!((Label) view.lookup("#editor-game-name")).getText().equals(selected.name())) {
+                    throw new AssertionError("Sidebar selection did not update editor context");
+                }
+                if (list.localToScene(list.getBoundsInLocal()).getMinX() > 300) {
+                    throw new AssertionError("Game list is not in the sidebar");
+                }
                 snapshot(output.resolve("library.png"));
                 int total = list.getItems().size();
                 var search = (TextField) view.lookup("#search-games");
@@ -84,7 +92,7 @@ public final class UiSmokeCheck {
                 if (list.getItems().isEmpty() || list.getItems().size() > total) throw new AssertionError("Search failed");
                 search.clear();
                 if (list.getItems().size() != total) throw new AssertionError("Search clear did not restore rows");
-                System.out.println("Graphical live check passed: " + total + " games rendered; search and credential-field clearing verified.");
+                System.out.println("Graphical live check passed: " + total + " games in the sidebar; editor selection, search, and credential-field clearing verified.");
                 view.close();
                 Platform.exit();
             } catch (Throwable ex) { fail(); }

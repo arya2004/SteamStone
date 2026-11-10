@@ -10,7 +10,7 @@
 .label { -fx-text-fill: #e8edf3; }
 .sidebar {
     -fx-background-color: #0d1219;
-    -fx-padding: 30 20 24 20;
+    -fx-padding: 26 16 20 16;
     -fx-border-color: transparent #26303b transparent transparent;
     -fx-border-width: 0 1 0 0;
 }
@@ -18,11 +18,6 @@
 .brand-name { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #f0f6f4; }
 .brand-caption { -fx-font-size: 10px; -fx-text-fill: #7b8998; }
 .eyebrow, .masthead-muted { -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #7c8a9b; }
-.nav-active { -fx-background-color: #1b302e; -fx-background-radius: 8; -fx-padding: 12 14; }
-.nav-symbol { -fx-font-size: 22px; -fx-text-fill: #9ae2cb; }
-.nav-text { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #b0edda; }
-.sidebar-copy { -fx-font-size: 12px; -fx-text-fill: #8794a4; -fx-line-spacing: 4; }
-.sidebar-version { -fx-font-size: 9px; -fx-text-fill: #607182; }
 .separator .line { -fx-border-color: #25303a transparent transparent transparent; }
 .masthead {
     -fx-padding: 20 34;
@@ -73,32 +68,16 @@
 .error-message { -fx-text-fill: #ffb2a5; -fx-font-size: 12px; -fx-line-spacing: 3; }
 .privacy-note { -fx-font-size: 11px; -fx-text-fill: #9aaeb0; }
 .connect-footer { -fx-font-size: 10px; -fx-text-fill: #738297; }
-.library-page { -fx-padding: 30 34 22 34; }
-.library-title { -fx-font-size: 32px; -fx-font-weight: bold; }
-.library-subtitle { -fx-font-size: 11px; -fx-text-fill: #92a2b6; }
-.stat-card { -fx-background-color: #19212c; -fx-border-color: #2b3845; -fx-border-radius: 9; -fx-background-radius: 9; -fx-padding: 18 20; }
-.stat-caption { -fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #8f9fb2; }
-.stat-number { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #b0ecd6; }
-.stat-description { -fx-font-size: 10px; -fx-text-fill: #8393a6; }
-.combo-box { -fx-background-color: #1b2430; -fx-border-color: #344252; -fx-border-radius: 6; -fx-background-radius: 6; }
-.combo-box .list-cell { -fx-background-color: transparent; -fx-text-fill: #d7e2ed; -fx-font-size: 12px; }
-.combo-box .arrow { -fx-background-color: #a3b3c6; }
-.combo-box-popup .list-view { -fx-background-color: #202b38; -fx-border-color: #354454; }
-.combo-box-popup .list-cell { -fx-padding: 10; -fx-background-color: #202b38; }
-.combo-box-popup .list-cell:hover { -fx-background-color: #2d4546; }
-.read-only-tag { -fx-text-fill: #7d91a5; -fx-font-size: 9px; }
 .list-view { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; }
 .list-view .virtual-flow, .list-view .clipped-container { -fx-background-color: transparent; }
-.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell { -fx-background-color: #19212c; -fx-padding: 0; -fx-border-color: transparent transparent #11161e transparent; -fx-border-width: 0 0 5 0; }
+.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell { -fx-background-color: #19212c; -fx-padding: 0; -fx-border-color: transparent transparent #11161e transparent; -fx-border-width: 0 0 3 0; }
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover { -fx-background-color: #202c39; }
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected { -fx-background-color: #253b3c; }
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:empty { -fx-background-color: transparent; -fx-border-color: transparent; }
-.game-row { -fx-padding: 12 18; }
+.game-row { -fx-padding: 10 9; }
 .game-cover { -fx-background-color: #30453f; -fx-background-radius: 5; }
-.game-initial { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #acdfc9; }
-.game-name { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #e2eaf2; }
-.game-id { -fx-font-size: 9px; -fx-text-fill: #7e90a5; }
-.game-time { -fx-font-size: 11px; -fx-text-fill: #a5b6c7; }
+.game-initial { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #acdfc9; }
+.game-name { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #e2eaf2; }
 .library-status { -fx-font-size: 10px; -fx-text-fill: #8396a8; }
 .empty-title { -fx-font-size: 18px; -fx-font-weight: bold; }
 .scroll-bar { -fx-background-color: transparent; -fx-pref-width: 10; }
@@ -106,3 +85,14 @@
 .scroll-bar .thumb { -fx-background-color: #374553; -fx-background-radius: 8; }
 .scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-background-color: transparent; -fx-padding: 0; }
 .scroll-bar .increment-arrow, .scroll-bar .decrement-arrow { -fx-shape: " "; -fx-padding: 0; }
+
+.game-count-badge { -fx-background-color: #253b35; -fx-text-fill: #b0ecd6; -fx-background-radius: 5; -fx-padding: 4 8; -fx-font-size: 11px; -fx-font-weight: bold; }
+.sidebar-empty { -fx-text-fill: #8293a6; -fx-font-size: 12px; -fx-text-alignment: center; -fx-padding: 20; }
+.sidebar-account-name { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #c5d7e2; }
+.sidebar-game-list > .virtual-flow > .clipped-container > .sheet > .list-cell { -fx-background-radius: 6; -fx-background-color: transparent; }
+.sidebar-game-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected { -fx-background-color: #203b34; }
+.editor-header { -fx-padding: 32 34; }
+.editor-game-name { -fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #edf3f7; }
+.editor-game-id { -fx-font-size: 11px; -fx-text-fill: #8c9fb2; }
+.editor-empty-symbol { -fx-font-size: 46px; -fx-text-fill: #79b9a4; }
+.editor-empty-description { -fx-font-size: 13px; -fx-text-fill: #8fa2b5; -fx-text-alignment: center; -fx-line-spacing: 3; }

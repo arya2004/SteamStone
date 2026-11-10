@@ -2,7 +2,7 @@
 
 A focused desktop home for your Steam library. Built with Java 25, JavaFX, and a small CSS theme.
 
-**Milestone 1:** enter your personal Steam Web API key and profile, then browse your library. Search by name or App ID, sort by name/playtime/recent activity, refresh, and disconnect. Uninstalled games are included when returned by Steam. This version is read-only; achievement editing is not implemented.
+**Milestone 1:** enter your personal Steam Web API key and profile, then browse your library. Find games in the searchable sidebar, select one to set the main achievement workspace, refresh, and disconnect. Only the sidebar shows a game count; playtime/statistic dashboards are intentionally omitted. Uninstalled games are included when returned by Steam. This version is read-only; achievement editing is not implemented.
 
 ## Run on your Mac
 
@@ -141,7 +141,7 @@ Your existing key file stays outside this repository. Enter it manually in the U
 
 SteamStone asks Valve's documented `GetOwnedGames` endpoint for the selected account. It requests names/icons and played free games; it does not fetch a global catalog, use `gib.me`, scrape Community pages, inspect Steam login/cache files, or perform per-title ownership scans.
 
-Vanity links use `ResolveVanityURL`; the optional display name uses `GetPlayerSummaries`. Icons load from Steam's CDN. Playtime is Steam's recorded lifetime value; recent sort uses the supplied last-played timestamp.
+Vanity links use `ResolveVanityURL`; the optional display name uses `GetPlayerSummaries`. Icons load from Steam's CDN. Games are sorted alphabetically. Selecting one updates the main editor heading; achievement loading/editing is not implemented in this milestone.
 
 Library visibility, temporary/family licenses, free games, and Steam API behavior can affect coverage. A zero response does not prove the account owns no games. Missing/denied data is not silently replaced with an installed-games scan. Failed refresh keeps the prior session snapshot visible and labels it as older data.
 

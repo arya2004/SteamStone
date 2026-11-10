@@ -1,6 +1,5 @@
 package steamstone.ui;
 
-import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -39,20 +38,20 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Label libraryStatus = new Label();
     private final Label profileName = new Label();
     private final Label gameCount = new Label("0");
-    private final Label hoursCount = new Label("0");
-    private final Label playedCount = new Label("0");
-    private final Label listCount = new Label();
     private final Label accountBadge = new Label("NOT CONNECTED");
-    private final Label sidebarName = new Label("Your next great game\nis already in your library.");
+    private final Label editorGameName = new Label("Achievement editor");
+    private final Label editorGameId = new Label("Select a game from your library");
+    private final Label editorEmptyTitle = new Label("Choose a game");
+    private final Label editorEmptyDescription = new Label("Select a game in the sidebar to open its achievement workspace.");
+    private final Label sidebarEmptyMessage = new Label("Connect your library to see your games.");
     private final TextField search = new TextField();
-    private final ComboBox<String> sort = new ComboBox<>(FXCollections.observableArrayList(
-            "Name: A–Z", "Most played", "Recently played"));
     private final ListView<Game> gameList = new ListView<>();
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
     private final StackPane screens = new StackPane();
     private final VBox connectionScreen;
     private final VBox libraryScreen;
     private SteamLibrary library;
+    private Game selectedGame;
     private Task<SteamLibrary> currentTask;
     private String sessionKey;
     private String sessionProfile;
@@ -81,30 +80,58 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         refreshButton.setOnAction(event -> load(sessionKey, sessionProfile));
         disconnectButton.setOnAction(event -> disconnect());
         search.textProperty().addListener((obs, before, after) -> filterGames());
-        sort.valueProperty().addListener((obs, before, after) -> filterGames());
+        gameList.getSelectionModel().selectedItemProperty().addListener((obs, before, game) -> {
+            if (game != null) selectGame(game);
+        });
     }
 
     private Node sidebar() {
         var stone = new Polygon(15, 0, 30, 10, 26, 30, 10, 34, 0, 20, 3, 6);
         stone.getStyleClass().add("stone-logo");
-        var brandName = label("STEAMSTONE", "brand-name");
-        var brandCaption = label("A home for your games.", "brand-caption");
-        var brand = new HBox(12, stone, new VBox(4, brandName, brandCaption));
+        var brand = new HBox(12, stone, new VBox(4,
+                label("STEAMSTONE", "brand-name"), label("Your achievement workspace.", "brand-caption")));
         brand.setAlignment(Pos.CENTER_LEFT);
 
-        var libraryNav = new HBox(12, label("▦", "nav-symbol"), label("Library", "nav-text"));
-        libraryNav.setAlignment(Pos.CENTER_LEFT);
-        libraryNav.getStyleClass().add("nav-active");
-        var section = label("WORKSPACE", "eyebrow");
-        VBox.setMargin(section, new Insets(46, 0, 12, 10));
-        var spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-        sidebarName.getStyleClass().add("sidebar-copy");
-        sidebarName.setWrapText(true);
-        var bottom = new VBox(16, new Separator(), sidebarName,
-                label("STEAMSTONE  /  0.1", "sidebar-version"));
-        var box = new VBox(0, brand, section, libraryNav, spacer, bottom);
-        box.setPrefWidth(224);
+        gameCount.getStyleClass().add("game-count-badge");
+        var grow = new Region();
+        HBox.setHgrow(grow, Priority.ALWAYS);
+        var heading = new HBox(10, label("ALL GAMES", "eyebrow"), grow, gameCount);
+        heading.setAlignment(Pos.CENTER_LEFT);
+        VBox.setMargin(heading, new Insets(30, 0, 0, 0));
+        search.setPromptText("Search games…");
+        search.setId("search-games");
+        search.setPrefHeight(38);
+        search.setDisable(true);
+
+        gameList.getStyleClass().add("sidebar-game-list");
+        gameList.setFixedCellSize(52);
+        gameList.setCellFactory(view -> new GameCell());
+        sidebarEmptyMessage.getStyleClass().add("sidebar-empty");
+        sidebarEmptyMessage.setWrapText(true);
+        sidebarEmptyMessage.setMaxWidth(230);
+        gameList.setPlaceholder(sidebarEmptyMessage);
+        VBox.setVgrow(gameList, Priority.ALWAYS);
+
+        profileName.setText("Not connected");
+        profileName.getStyleClass().add("sidebar-account-name");
+        profileName.setMaxWidth(Double.MAX_VALUE);
+        profileName.setTextOverrun(OverrunStyle.ELLIPSIS);
+        refreshButton.setText("Refresh");
+        refreshButton.setId("refresh-library");
+        refreshButton.getStyleClass().add("secondary-button");
+        refreshButton.setDisable(true);
+        disconnectButton.getStyleClass().add("text-button");
+        disconnectButton.setDisable(true);
+        var actions = new HBox(8, refreshButton, disconnectButton);
+        libraryStatus.getStyleClass().add("library-status");
+        libraryStatus.setWrapText(true);
+        libraryStatus.setId("library-status");
+        hide(libraryStatus);
+        var bottom = new VBox(10, new Separator(), label("ACCOUNT", "eyebrow"), profileName, actions, libraryStatus);
+        var box = new VBox(14, brand, heading, search, gameList, bottom);
+        box.setPrefWidth(300);
+        box.setMinWidth(300);
+        box.setMaxWidth(300);
         box.getStyleClass().add("sidebar");
         return box;
     }
@@ -114,7 +141,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         HBox.setHgrow(grow, Priority.ALWAYS);
         accountBadge.getStyleClass().add("account-badge");
         var bar = new HBox(10, label("WORKSPACE", "masthead-muted"), label("/", "masthead-muted"),
-                label("Library", "masthead-current"), grow, accountBadge);
+                label("Achievement editor", "masthead-current"), grow, accountBadge);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("masthead");
         return bar;
@@ -168,60 +195,42 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private VBox libraryScreen() {
-        var heading = new VBox(8, label("THE COLLECTION", "accent-eyebrow"), label("Your library", "library-title"));
-        profileName.getStyleClass().add("library-subtitle");
-        heading.getChildren().add(profileName);
-        var grow = new Region();
-        HBox.setHgrow(grow, Priority.ALWAYS);
-        refreshButton.getStyleClass().add("secondary-button");
-        refreshButton.setId("refresh-library");
-        disconnectButton.getStyleClass().add("text-button");
-        var actions = new HBox(10, disconnectButton, refreshButton);
-        actions.setAlignment(Pos.CENTER_RIGHT);
-        var top = new HBox(20, heading, grow, actions);
-        top.setAlignment(Pos.CENTER_LEFT);
+        editorGameName.getStyleClass().add("editor-game-name");
+        editorGameName.setId("editor-game-name");
+        editorGameName.setWrapText(true);
+        editorGameId.getStyleClass().add("editor-game-id");
+        var header = new VBox(12, label("ACHIEVEMENT EDITOR", "accent-eyebrow"), editorGameName, editorGameId);
+        header.getStyleClass().add("editor-header");
 
-        var stats = new HBox(12, statCard(gameCount, "GAMES IN LIBRARY", "Every title returned by Steam"),
-                statCard(hoursCount, "HOURS PLAYED", "A collection of good times"),
-                statCard(playedCount, "GAMES PLAYED", "At least one minute recorded"));
-        search.setPromptText("Search your games…");
-        search.setId("search-games");
-        search.setPrefHeight(42);
-        HBox.setHgrow(search, Priority.ALWAYS);
-        sort.getSelectionModel().selectFirst();
-        sort.setPrefWidth(180);
-        sort.setPrefHeight(42);
-        var tools = new HBox(12, search, sort);
-        listCount.getStyleClass().add("eyebrow");
-        var readOnly = label("READ-ONLY", "read-only-tag");
-        var lineGrow = new Region();
-        HBox.setHgrow(lineGrow, Priority.ALWAYS);
-        var listHeader = new HBox(listCount, lineGrow, readOnly);
-        listHeader.setAlignment(Pos.CENTER_LEFT);
-        gameList.setFixedCellSize(78);
-        gameList.setCellFactory(view -> new GameCell());
-        var empty = new VBox(10, label("Nothing to show yet", "empty-title"),
-                label("Try another search. If Steam returned no games, check your Game details privacy.", "muted"));
+        editorEmptyTitle.getStyleClass().add("empty-title");
+        editorEmptyTitle.setWrapText(true);
+        editorEmptyDescription.getStyleClass().add("editor-empty-description");
+        editorEmptyDescription.setWrapText(true);
+        editorEmptyDescription.setMaxWidth(390);
+        var empty = new VBox(14, label("◇", "editor-empty-symbol"), editorEmptyTitle, editorEmptyDescription);
         empty.setAlignment(Pos.CENTER);
-        empty.setPadding(new Insets(20));
-        ((Label) empty.getChildren().get(1)).setWrapText(true);
-        gameList.setPlaceholder(empty);
-        VBox.setVgrow(gameList, Priority.ALWAYS);
-        libraryStatus.getStyleClass().add("library-status");
-        libraryStatus.setWrapText(true);
-        libraryStatus.setId("library-status");
-        var page = new VBox(20, top, stats, tools, listHeader, gameList, libraryStatus);
-        page.getStyleClass().add("library-page");
+        empty.setPadding(new Insets(30));
+        var workspace = new StackPane(empty);
+        workspace.getStyleClass().add("editor-workspace");
+        VBox.setVgrow(workspace, Priority.ALWAYS);
+        var page = new VBox(0, header, new Separator(), workspace);
+        page.getStyleClass().add("editor-page");
         return page;
     }
 
-    private Node statCard(Label number, String caption, String description) {
-        number.getStyleClass().add("stat-number");
-        var box = new VBox(7, label(caption, "stat-caption"), number, label(description, "stat-description"));
-        box.getStyleClass().add("stat-card");
-        HBox.setHgrow(box, Priority.ALWAYS);
-        box.setMaxWidth(Double.MAX_VALUE);
-        return box;
+    private void selectGame(Game game) {
+        selectedGame = game;
+        if (game == null) {
+            editorGameName.setText("Achievement editor");
+            editorGameId.setText("Select a game from your library");
+            editorEmptyTitle.setText("Choose a game");
+            editorEmptyDescription.setText("Select a game in the sidebar to open its achievement workspace.");
+        } else {
+            editorGameName.setText(game.name());
+            editorGameId.setText("APP " + game.appId());
+            editorEmptyTitle.setText("No achievement data loaded");
+            editorEmptyDescription.setText("Achievement loading is not available in this build.");
+        }
     }
 
     private void connect() {
@@ -248,22 +257,23 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             currentTask = null;
             setBusy(false);
             library = task.getValue();
+            refreshButton.setDisable(false);
             sessionKey = nextKey;
             sessionProfile = nextProfile;
             keyField.clear();
-            profileName.setText(library.playerName() + "  ·  " + library.steamId());
+            profileName.setText(library.playerName());
             gameCount.setText(String.format(Locale.ROOT, "%,d", library.games().size()));
-            hoursCount.setText(String.format(Locale.ROOT, "%,.0f", library.playtimeMinutes() / 60.0));
-            playedCount.setText(String.format(Locale.ROOT, "%,d", library.games().stream().filter(g -> g.playtimeMinutes() > 0).count()));
             accountBadge.setText("●  CONNECTED TO STEAM");
             if (!accountBadge.getStyleClass().contains("connected")) accountBadge.getStyleClass().add("connected");
-            sidebarName.setText("Connected as\n" + library.playerName());
+            search.setDisable(false);
+            disconnectButton.setDisable(false);
             filterGames();
             showLibrary(true);
+            show(libraryStatus);
             String time = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(library.fetchedAt());
             libraryStatus.setText(library.games().isEmpty()
                     ? "Steam returned no games. This can reflect library visibility; it is not proof that the account owns none."
-                    : "Updated at " + time + "  ·  Includes uninstalled games  ·  Results depend on Steam's library visibility");
+                    : "Updated at " + time);
         });
         task.setOnFailed(event -> {
             if (currentTask != task) return;
@@ -285,17 +295,22 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void filterGames() {
         if (library == null) return;
         String query = search.getText().strip().toLowerCase(Locale.ROOT);
-        Comparator<Game> order = switch (sort.getSelectionModel().getSelectedIndex()) {
-            case 1 -> Comparator.comparingLong(Game::playtimeMinutes).reversed();
-            case 2 -> Comparator.comparingLong(Game::lastPlayed).reversed();
-            default -> Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER);
-        };
         var visible = library.games().stream()
-                .filter(game -> game.name().toLowerCase(Locale.ROOT).contains(query) || Long.toString(game.appId()).contains(query))
-                .sorted(order.thenComparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId))
+                .filter(game -> game.name().toLowerCase(Locale.ROOT).contains(query)
+                        || Long.toString(game.appId()).contains(query))
+                .sorted(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId))
                 .toList();
         gameList.getItems().setAll(visible);
-        listCount.setText(String.format(Locale.ROOT, "%,d OF %,d GAMES", visible.size(), library.games().size()));
+        if (selectedGame != null) {
+            long id = selectedGame.appId();
+            selectGame(library.games().stream().filter(game -> game.appId() == id).findFirst().orElse(null));
+        }
+        if (selectedGame != null && visible.contains(selectedGame)) {
+            gameList.getSelectionModel().select(selectedGame);
+        } else if (selectedGame == null && !visible.isEmpty()) {
+            gameList.getSelectionModel().selectFirst();
+        }
+        sidebarEmptyMessage.setText(library.games().isEmpty() ? "Steam returned no games." : "No matching games.");
     }
 
     private void disconnect() {
@@ -314,7 +329,14 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         setBusy(false);
         accountBadge.setText("NOT CONNECTED");
         accountBadge.getStyleClass().removeIf("connected"::equals);
-        sidebarName.setText("Your next great game\nis already in your library.");
+        profileName.setText("Not connected");
+        gameCount.setText("0");
+        search.setDisable(true);
+        refreshButton.setDisable(true);
+        disconnectButton.setDisable(true);
+        hide(libraryStatus);
+        sidebarEmptyMessage.setText("Connect your library to see your games.");
+        selectGame(null);
         showLibrary(false);
         keyField.requestFocus();
     }
@@ -322,7 +344,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void setBusy(boolean value) {
         connectButton.setDisable(value);
         connectButton.setText(value ? "Loading your library…" : "Load my library  →");
-        refreshButton.setDisable(value);
+        refreshButton.setDisable(value || library == null);
         keyField.setDisable(value);
         profileField.setDisable(value);
     }
@@ -339,7 +361,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         if (url == null) return null;
         Image cached = icons.get(url);
         if (cached != null) return cached;
-        var image = new Image(url, 48, 48, true, true, true);
+        var image = new Image(url, 28, 28, true, true, true);
         icons.put(url, image);
         if (icons.size() > 160) icons.remove(icons.keySet().iterator().next());
         return image;
@@ -349,32 +371,31 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         private final Label initial = label("", "game-initial");
         private final ImageView image = new ImageView();
         private final Label name = label("", "game-name");
-        private final Label appId = label("", "game-id");
-        private final Label time = label("", "game-time");
         private final HBox row;
 
         GameCell() {
-            image.setFitWidth(48);
-            image.setFitHeight(48);
+            image.setFitWidth(28);
+            image.setFitHeight(28);
             var cover = new StackPane(initial, image);
             cover.getStyleClass().add("game-cover");
-            cover.setMinSize(48, 48);
-            cover.setMaxSize(48, 48);
-            var text = new VBox(5, name, appId);
+            cover.setMinSize(28, 28);
+            cover.setMaxSize(28, 28);
+            var text = new VBox(name);
             text.setMinWidth(0);
             HBox.setHgrow(text, Priority.ALWAYS);
-            time.setMinWidth(Region.USE_PREF_SIZE);
-            row = new HBox(16, cover, text, time);
+            row = new HBox(10, cover, text);
             row.setAlignment(Pos.CENTER_LEFT);
             row.getStyleClass().add("game-row");
             name.setMaxWidth(Double.MAX_VALUE);
             name.setTextOverrun(OverrunStyle.ELLIPSIS);
+            setTooltip(new Tooltip());
         }
 
         @Override protected void updateItem(Game game, boolean empty) {
             super.updateItem(game, empty);
             if (empty || game == null) {
                 image.setImage(null);
+                getTooltip().setText("");
                 setGraphic(null);
                 setText(null);
                 return;
@@ -382,9 +403,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             initial.setText(game.name().substring(0, 1).toUpperCase(Locale.ROOT));
             image.setImage(iconFor(game));
             name.setText(game.name());
-            appId.setText("APP " + game.appId());
-            time.setText(game.playtimeMinutes() == 0 ? "Not played" :
-                    String.format(Locale.ROOT, "%,.1f h played", game.playtimeMinutes() / 60.0));
+            getTooltip().setText(game.name());
             setGraphic(row);
             setText(null);
         }
