@@ -30,7 +30,7 @@ def main():
     suffix = ".exe" if system == "Windows" else ""
     home = os.environ.get("JAVA_HOME")
     java = Path(home) / "bin" / ("java" + suffix) if home else Path(shutil.which("java") or "java").resolve()
-    version_output = subprocess.run([str(java), "-version"], capture_output=True, text=True, check=True)
+    version_output = subprocess.run([str(java), "-XshowSettings:properties", "-version"], capture_output=True, text=True, check=True)
     if not re.search(r'version "25(?:[.\"-])', version_output.stdout + version_output.stderr):
         raise SystemExit("Select JDK 25 with JAVA_HOME before packaging.")
     jpackage = java.parent / ("jpackage" + suffix)
@@ -42,7 +42,10 @@ def main():
         raise SystemExit("pom.xml must use a plain major.minor.patch version for packaging.")
     if args.version and args.version != version:
         raise SystemExit("Release tag/version must match pom.xml.")
-    machine = platform.machine().lower()
+    java_arch = re.search(r"^\s*os\.arch\s*=\s*(\S+)", version_output.stderr + version_output.stdout, re.MULTILINE)
+    if java_arch is None:
+        raise SystemExit("Could not determine the selected JDK architecture.")
+    machine = java_arch.group(1).lower()
     arch = {"arm64": "arm64", "aarch64": "arm64", "amd64": "x64", "x86_64": "x64"}.get(machine)
     if system not in ("Darwin", "Windows", "Linux") or arch is None or (system != "Darwin" and arch != "x64"):
         raise SystemExit("Supported builds: macOS arm64/x64, Windows x64, Linux x64.")
@@ -104,7 +107,7 @@ def main():
     with archive.open("rb") as source:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
-    Path(str(archive) + ".sha256").write_text(f"{digest.hexdigest()}  {archive.name}\n", encoding="utf-8")
+    Path(str(archive) + ".sha256").write_text(f"{digest.hexdigest()}  {archive.name}\n", encoding="utf-8", newline="\n")
     print(f"Created {archive} and its SHA-256 checksum.")
 
 
