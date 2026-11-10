@@ -1,0 +1,13 @@
+/target/
+/.idea/
+/.vscode/
+.DS_Store
+*.log
+key.md
+key.txt
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.keystore
