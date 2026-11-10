@@ -96,3 +96,22 @@
 .editor-game-id { -fx-font-size: 11px; -fx-text-fill: #8c9fb2; }
 .editor-empty-symbol { -fx-font-size: 46px; -fx-text-fill: #79b9a4; }
 .editor-empty-description { -fx-font-size: 13px; -fx-text-fill: #8fa2b5; -fx-text-alignment: center; -fx-line-spacing: 3; }
+
+.achievement-body { -fx-padding: 18 26 20 26; }
+.preview-banner { -fx-background-color: #302b20; -fx-text-fill: #e6c98b; -fx-padding: 10 12; -fx-background-radius: 5; -fx-font-size: 11px; }
+.achievement-notice { -fx-text-fill: #d9bc85; -fx-font-size: 11px; }
+.achievement-row { -fx-padding: 14; -fx-background-radius: 6; -fx-border-radius: 6; -fx-border-width: 1; }
+.unlocked-row { -fx-background-color: #19342e; -fx-border-color: #305a4c; }
+.locked-row { -fx-background-color: #252a34; -fx-border-color: #3c4553; }
+.unknown-row { -fx-background-color: #322b22; -fx-border-color: #625136; }
+.changed-row { -fx-border-color: #c1dfed; }
+.achievement-name { -fx-font-size: 13px; -fx-font-weight: bold; }
+.achievement-description { -fx-font-size: 11px; -fx-text-fill: #b4c0cb; }
+.achievement-id { -fx-font-size: 9px; -fx-text-fill: #7f94a4; }
+.achievement-state { -fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #a7b7cc; }
+.unlocked-row .achievement-state { -fx-text-fill: #9ce4c4; }
+.unknown-row .achievement-state { -fx-text-fill: #e6c98b; }
+.achievement-cover { -fx-background-color: #111a20; -fx-background-radius: 5; }
+.check-box .box { -fx-background-color: #121b24; -fx-border-color: #718595; -fx-border-radius: 3; -fx-background-radius: 3; }
+.check-box:selected .mark, .check-box:indeterminate .mark { -fx-background-color: #a8e5cf; }
+.achievement-list > .virtual-flow > .clipped-container > .sheet > .list-cell { -fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 3 0; }

@@ -39,10 +39,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Label profileName = new Label();
     private final Label gameCount = new Label("0");
     private final Label accountBadge = new Label("NOT CONNECTED");
-    private final Label editorGameName = new Label("Achievement editor");
-    private final Label editorGameId = new Label("Select a game from your library");
-    private final Label editorEmptyTitle = new Label("Choose a game");
-    private final Label editorEmptyDescription = new Label("Select a game in the sidebar to open its achievement workspace.");
+    private final AchievementEditor editor;
     private final Label sidebarEmptyMessage = new Label("Connect your library to see your games.");
     private final TextField search = new TextField();
     private final ListView<Game> gameList = new ListView<>();
@@ -58,6 +55,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
     public LibraryView(SteamWebApi api) {
         this.api = api;
+        editor = new AchievementEditor(api);
         getStyleClass().add("app-root");
         setLeft(sidebar());
         connectionScreen = connectionScreen();
@@ -194,43 +192,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         return page;
     }
 
-    private VBox libraryScreen() {
-        editorGameName.getStyleClass().add("editor-game-name");
-        editorGameName.setId("editor-game-name");
-        editorGameName.setWrapText(true);
-        editorGameId.getStyleClass().add("editor-game-id");
-        var header = new VBox(12, label("ACHIEVEMENT EDITOR", "accent-eyebrow"), editorGameName, editorGameId);
-        header.getStyleClass().add("editor-header");
-
-        editorEmptyTitle.getStyleClass().add("empty-title");
-        editorEmptyTitle.setWrapText(true);
-        editorEmptyDescription.getStyleClass().add("editor-empty-description");
-        editorEmptyDescription.setWrapText(true);
-        editorEmptyDescription.setMaxWidth(390);
-        var empty = new VBox(14, label("◇", "editor-empty-symbol"), editorEmptyTitle, editorEmptyDescription);
-        empty.setAlignment(Pos.CENTER);
-        empty.setPadding(new Insets(30));
-        var workspace = new StackPane(empty);
-        workspace.getStyleClass().add("editor-workspace");
-        VBox.setVgrow(workspace, Priority.ALWAYS);
-        var page = new VBox(0, header, new Separator(), workspace);
-        page.getStyleClass().add("editor-page");
-        return page;
-    }
+    private VBox libraryScreen() { return editor; }
 
     private void selectGame(Game game) {
         selectedGame = game;
-        if (game == null) {
-            editorGameName.setText("Achievement editor");
-            editorGameId.setText("Select a game from your library");
-            editorEmptyTitle.setText("Choose a game");
-            editorEmptyDescription.setText("Select a game in the sidebar to open its achievement workspace.");
-        } else {
-            editorGameName.setText(game.name());
-            editorGameId.setText("APP " + game.appId());
-            editorEmptyTitle.setText("No achievement data loaded");
-            editorEmptyDescription.setText("Achievement loading is not available in this build.");
-        }
+        editor.open(game, sessionKey, library == null ? null : library.steamId());
     }
 
     private void connect() {
@@ -300,6 +266,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                         || Long.toString(game.appId()).contains(query))
                 .sorted(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId))
                 .toList();
+        gameList.getSelectionModel().clearSelection();
         gameList.getItems().setAll(visible);
         if (selectedGame != null) {
             long id = selectedGame.appId();
@@ -424,5 +391,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         keyField.clear();
         icons.clear();
         requests.shutdownNow();
+        editor.close();
     }
 }

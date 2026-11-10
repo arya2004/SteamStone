@@ -3,6 +3,8 @@ package steamstone.steam;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import steamstone.model.Game;
+import steamstone.model.Achievement;
+import steamstone.model.AchievementList;
 import steamstone.model.SteamLibrary;
 
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Set;
 
 /** Read-only, documented Steam Web API. No global catalogs or internal Steam files. */
@@ -112,6 +115,80 @@ public final class SteamWebApi {
         }
         games.sort(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId));
         return new SteamLibrary(steamId, playerName, games, Instant.now());
+    }
+
+    public AchievementList loadAchievements(String apiKey, String steamId, long appId)
+            throws SteamApiException, InterruptedException {
+        if (apiKey == null || !apiKey.matches("[a-fA-F0-9]{32}") || steamId == null
+                || !steamId.matches("[0-9]{17}") || appId <= 0 || appId > 0xffffffffL) {
+            throw new SteamApiException("A valid account, API key, and game are required.");
+        }
+        JsonNode schema = get("ISteamUserStats/GetSchemaForGame/v2/?appid=" + appId + "&l=english", apiKey).path("game");
+        if (!schema.isObject() || schema.isEmpty()) {
+            throw new SteamApiException("Steam did not provide achievement definitions for this game.");
+        }
+        JsonNode definitions = schema.path("availableGameStats").path("achievements");
+        if (definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty())) {
+            return new AchievementList(java.util.List.of(), "Steam returned no achievement definitions for this game.");
+        }
+        if (!definitions.isArray()) throw new SteamApiException("Steam returned unexpected achievement definitions.");
+
+        JsonNode player = null;
+        String notice = "";
+        try {
+            player = get("ISteamUserStats/GetPlayerAchievements/v1/?appid=" + appId
+                    + "&steamid=" + steamId + "&l=english", apiKey).path("playerstats");
+        } catch (SteamApiException ex) {
+            notice = ex.getMessage() + " Achievement states are unavailable.";
+        }
+        return combineAchievements(definitions, player, steamId, notice);
+    }
+
+    AchievementList combineAchievements(JsonNode definitions, JsonNode player, String steamId, String notice)
+            throws SteamApiException {
+        var states = new HashMap<String, JsonNode>();
+        if (player != null && player.path("success").asBoolean(false)) {
+            String returnedId = player.path("steamID").asText(steamId);
+            if (!returnedId.equals(steamId)) throw new SteamApiException("Steam returned achievement data for a different account.");
+            JsonNode entries = player.path("achievements");
+            if (entries.isArray()) {
+                for (JsonNode entry : entries) {
+                    String name = entry.path("apiname").asText();
+                    if (!name.isBlank() && states.put(name, entry) != null) {
+                        throw new SteamApiException("Steam returned duplicate achievement states. Please retry.");
+                    }
+                }
+            }
+        }
+        var result = new ArrayList<Achievement>();
+        var names = new HashSet<String>();
+        int unknown = 0;
+        for (JsonNode definition : definitions) {
+            String id = definition.path("name").asText();
+            if (id.isBlank() || !names.add(id)) throw new SteamApiException("Steam returned invalid achievement identifiers.");
+            String name = definition.path("displayName").asText(id);
+            if (name.isBlank()) name = id;
+            String description = definition.path("description").asText("");
+            if (description.isBlank() && definition.path("hidden").asInt() != 0) description = "Hidden achievement";
+            JsonNode state = states.get(id);
+            Achievement.State status = Achievement.State.UNKNOWN;
+            long time = 0;
+            if (state != null && state.path("achieved").isIntegralNumber()) {
+                int achieved = state.path("achieved").asInt(-1);
+                if (achieved == 0) status = Achievement.State.LOCKED;
+                if (achieved == 1) {
+                    status = Achievement.State.UNLOCKED;
+                    time = Math.max(0, state.path("unlocktime").asLong());
+                }
+            }
+            if (status == Achievement.State.UNKNOWN) unknown++;
+            result.add(new Achievement(id, name, description, status, time,
+                    definition.path("icon").asText(""), definition.path("icongray").asText("")));
+        }
+        if (unknown > 0 && notice.isBlank()) {
+            notice = "Steam did not expose the state of " + unknown + " achievement(s). Check Game details visibility; unavailable states are not treated as locked.";
+        }
+        return new AchievementList(result, notice);
     }
 
     private JsonNode get(String path, String apiKey) throws SteamApiException, InterruptedException {

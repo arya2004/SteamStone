@@ -22,3 +22,13 @@ Windows/Linux source run commands are documented but have not been runtime-teste
 - Achievement data and editing remain unimplemented; the workspace states that explicitly.
 - All 12 existing tests passed, the graphical selection/search check passed, and refreshed screenshots were visually inspected.
 - The macOS app bundle was rebuilt with the revised layout. Restart an older running instance to see the update.
+
+## Milestone 2: achievements and dummy editor
+
+- Clean Maven verification: 23 tests passed, zero failures/errors.
+- New HTTP fixtures verify exact-identifier joins, locked/unlocked states, hidden metadata, private/unavailable player data, malformed/missing states, duplicate identifiers, account mismatch, empty definitions, and validation before requests.
+- Preview checks verify toggling back removes pending changes, bulk operations skip unknown states, reset restores the original immutable snapshot, and foreign rows cannot be edited.
+- User-authorized graphical live check loaded 62 library games and 35 achievements for a selected game. It switched selection while loading, verified the editor context, and exercised tick/untick, Unlock all, Lock all, dummy Commit, Reset preview, library search, and clearing the credential field.
+- The Commit message explicitly confirmed that nothing was sent to Steam. All remote achievement operations are GET requests; the application contains no achievement-write endpoint or native integration.
+- Screenshots remain in ignored `target/verification`. The achievement layout was visually inspected on macOS.
+- The macOS development bundle is rebuilt for this milestone. Windows/Linux runtime validation remains pending.

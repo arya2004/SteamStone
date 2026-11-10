@@ -2,7 +2,9 @@
 
 A focused desktop home for your Steam library. Built with Java 25, JavaFX, and a small CSS theme.
 
-**Milestone 1:** enter your personal Steam Web API key and profile, then browse your library. Find games in the searchable sidebar, select one to set the main achievement workspace, refresh, and disconnect. Only the sidebar shows a game count; playtime/statistic dashboards are intentionally omitted. Uninstalled games are included when returned by Steam. This version is read-only; achievement editing is not implemented.
+**Milestone 2:** load your library, then click a game in the sidebar to load its achievements and your unlock states. Unlocked rows are green, locked rows are slate, and unavailable states are amber. The sidebar contains the game count; there are no playtime dashboards.
+
+Tick/untick, **Unlock all**, **Lock all**, **Reset preview**, and **Commit** are local preview controls. Commit displays a dummy message and sends nothing to Steam. Preview changes are discarded when you select another game, reload its achievements, disconnect, or close the app. Unavailable states cannot be preview-edited.
 
 ## Run on your Mac
 
@@ -141,7 +143,7 @@ Your existing key file stays outside this repository. Enter it manually in the U
 
 SteamStone asks Valve's documented `GetOwnedGames` endpoint for the selected account. It requests names/icons and played free games; it does not fetch a global catalog, use `gib.me`, scrape Community pages, inspect Steam login/cache files, or perform per-title ownership scans.
 
-Vanity links use `ResolveVanityURL`; the optional display name uses `GetPlayerSummaries`. Icons load from Steam's CDN. Games are sorted alphabetically. Selecting one updates the main editor heading; achievement loading/editing is not implemented in this milestone.
+Vanity links use `ResolveVanityURL`; the optional display name uses `GetPlayerSummaries`. Icons load from Steam's CDN. Games are sorted alphabetically. Selecting one loads `GetSchemaForGame` for achievement definitions and `GetPlayerAchievements` for account states. Results join by the exact achievement API identifier, not list position. Failed/private player data leaves states unavailable instead of assuming locked. Games without definitions show an explicit empty state. Failed requests can be retried with Reload; canceled responses cannot replace another game's view.
 
 Library visibility, temporary/family licenses, free games, and Steam API behavior can affect coverage. A zero response does not prove the account owns no games. Missing/denied data is not silently replaced with an installed-games scan. Failed refresh keeps the prior session snapshot visible and labels it as older data.
 
@@ -151,32 +153,34 @@ Library visibility, temporary/family licenses, free games, and Steam API behavio
 src/main/java/steamstone/
   Main.java                  Classpath/package launcher
   SteamStoneApp.java          JavaFX application lifecycle
-  model/                     Immutable games and library snapshot
+  model/                     Immutable Steam data and disposable local preview
   steam/                     Profile parsing and documented read-only HTTP API
-  ui/LibraryView.java        Connection and library screen/state
+  ui/LibraryView.java        Connection and sidebar screen/state
+  ui/AchievementEditor.java  Async achievement loading and dummy editor
 src/main/resources/styles/   Small JavaFX theme
 src/test/java/steamstone/    HTTP fixtures, parsing, and data checks
 ```
 
-One Maven module, no application framework, database, or server. Network calls run on a single background worker. The list is virtualized; only visible cells request icons, and the in-memory icon cache is bounded.
+One Maven module, no application framework, database, or server. Library and achievement requests each use a background worker. Lists are virtualized; only visible cells request icons, and the in-memory icon cache is bounded.
 
 ## Roadmap and review boundary
 
-1. **Library loading** — current milestone, ready for user review after verification.
-2. Open a game and list achievements.
+1. **Library loading** — reviewed; user requested milestone 2.
+2. **Achievement listing and dummy editor** — ready for review after verification.
 3. Stage achievement edits and commit through native Steam integration.
 4. Cross-platform runtime verification and distribution.
 5. Statistics/reset workflows and final release preparation.
 
-Stop for review after every milestone. This implementation does not begin milestone 2.
+Stop for review after every milestone. Actual Steam writes and native integration remain milestone 3; this build cannot commit achievements.
 
 ## Attribution
 
-SteamStone is inspired by and developed alongside Rick (gibbed)'s [Steam Achievement Manager](https://github.com/gibbed/SteamAchievementManager). The original SAM source remains in its separate repository. This first milestone is a new Java implementation; it does not copy SAM's game catalog or native binding code. SteamStone is not affiliated with Valve. Steam names and artwork belong to their respective owners.
+SteamStone is inspired by and developed alongside Rick (gibbed)'s [Steam Achievement Manager](https://github.com/gibbed/SteamAchievementManager). The original SAM source remains in its separate repository. This is a new Java implementation; it does not copy SAM's game catalog or native binding code. SteamStone is not affiliated with Valve. Steam names and artwork belong to their respective owners.
 
 ## References
 
 - [Owned games API](https://partner.steamgames.com/doc/webapi/IPlayerService#GetOwnedGames)
+- [Achievement definitions and player states](https://partner.steamgames.com/doc/webapi/ISteamUserStats)
 - [Steam profile API](https://partner.steamgames.com/doc/webapi/ISteamUser)
 - [Steam Web API key authentication](https://partner.steamgames.com/doc/webapi_overview/auth)
 - [JavaFX setup](https://openjfx.io/openjfx-docs/)

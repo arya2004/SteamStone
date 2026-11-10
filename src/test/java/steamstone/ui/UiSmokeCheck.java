@@ -31,6 +31,7 @@ public final class UiSmokeCheck {
         private LibraryView view;
         private Timeline poll;
         private int ticks;
+        private boolean selectedGame;
 
         @Override public void start(Stage stage) throws Exception {
             Path output = Path.of("target", "verification");
@@ -73,12 +74,18 @@ public final class UiSmokeCheck {
             var count = (Label) view.lookup("#game-count");
             if (count == null || count.getText().equals("0")) return;
             try {
-                poll.stop();
                 var list = (ListView<Game>) view.lookup("#game-list");
                 if (list.getItems().isEmpty()) throw new AssertionError("No UI rows loaded");
                 if (!((PasswordField) view.lookup("#api-key")).getText().isEmpty()) throw new AssertionError("Key field not cleared");
                 var selected = list.getItems().get(1);
-                list.getSelectionModel().select(selected);
+                if (!selectedGame) {
+                    list.getSelectionModel().select(selected);
+                    selectedGame = true;
+                    return;
+                }
+                var achievements = (ListView<?>) view.lookup("#achievement-list");
+                if (achievements.getItems().isEmpty()) return;
+                poll.stop();
                 if (!((Label) view.lookup("#editor-game-name")).getText().equals(selected.name())) {
                     throw new AssertionError("Sidebar selection did not update editor context");
                 }
@@ -86,13 +93,37 @@ public final class UiSmokeCheck {
                     throw new AssertionError("Game list is not in the sidebar");
                 }
                 snapshot(output.resolve("library.png"));
+                var unlockAll = (Button) view.lookup("#unlock-all");
+                var lockAll = (Button) view.lookup("#lock-all");
+                unlockAll.fire();
+                lockAll.fire();
+                var commit = (Button) view.lookup("#commit-preview");
+                if (commit.isDisabled()) {
+                    unlockAll.fire();
+                }
+                if (commit.isDisabled()) throw new AssertionError("No local preview changes produced");
+                commit.fire();
+                if (!((Label) view.lookup("#achievement-notice")).getText().contains("Nothing was sent to Steam")) {
+                    throw new AssertionError("Commit preview message missing");
+                }
+                ((Button) view.lookup("#reset-preview")).fire();
+                if (!((Label) view.lookup("#preview-count")).getText().startsWith("0 ")) {
+                    throw new AssertionError("Reset did not clear preview");
+                }
+                var checkbox = (javafx.scene.control.CheckBox) achievements.lookup(".check-box");
+                if (checkbox == null || checkbox.isDisabled()) throw new AssertionError("No editable visible checkbox");
+                checkbox.fire();
+                if (!((Label) view.lookup("#preview-count")).getText().startsWith("1 ")) {
+                    throw new AssertionError("Checkbox did not stage a preview");
+                }
+                ((Button) view.lookup("#reset-preview")).fire();
                 int total = list.getItems().size();
                 var search = (TextField) view.lookup("#search-games");
                 search.setText(Long.toString(list.getItems().getFirst().appId()));
                 if (list.getItems().isEmpty() || list.getItems().size() > total) throw new AssertionError("Search failed");
                 search.clear();
                 if (list.getItems().size() != total) throw new AssertionError("Search clear did not restore rows");
-                System.out.println("Graphical live check passed: " + total + " games in the sidebar; editor selection, search, and credential-field clearing verified.");
+                System.out.println("Graphical live check passed: " + total + " games; " + achievements.getItems().size() + " achievements; checkbox, bulk preview, dummy Commit, reset, search and credential-field clearing verified.");
                 view.close();
                 Platform.exit();
             } catch (Throwable ex) { fail(); }
