@@ -2,9 +2,9 @@
 
 A focused desktop home for your Steam library. Built with Java 25, JavaFX, and a small CSS theme.
 
-**Milestone 2:** load your library, then click a game in the sidebar to load its achievements and your unlock states. Unlocked rows are green, locked rows are slate, and unavailable states are amber. The sidebar contains the game count; there are no playtime dashboards.
+**Milestone 2:** load your library, then click a game in the sidebar to load its achievements and your unlock states. The Steam-style charcoal/navy theme uses blue accents. Unlocked rows are blue, locked rows are slate, and unavailable states are amber. The sidebar contains the game count. A compact title bar holds the editor controls; 56-pixel rows leave most of the window for achievements.
 
-Tick/untick, **Unlock all**, **Lock all**, **Reset preview**, and **Commit** are local preview controls. Commit displays a dummy message and sends nothing to Steam. Preview changes are discarded when you select another game, reload its achievements, disconnect, or close the app. Unavailable states cannot be preview-edited.
+Tick/untick, **Unlock all**, **Lock all**, **Reset**, and **Commit** are local preview controls. Commit displays a dummy message and sends nothing to Steam. Preview changes are discarded when you select another game, reload its achievements, disconnect, or close the app. Unavailable states cannot be preview-edited.
 
 ## Run on your Mac
 

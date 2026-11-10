@@ -23,14 +23,13 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private final Label title = label("Choose a game", "editor-game-name");
     private final Label subtitle = label("Select a game from the sidebar", "editor-game-id");
     private final Label notice = label("", "achievement-notice");
-    private final Label pending = label("0 preview changes", "muted");
     private final Label empty = label("Select a game to load its achievements.", "editor-empty-description");
     private final ListView<Achievement> list = new ListView<>();
     private final Button unlock = button("Unlock all", "unlock-all");
     private final Button lock = button("Lock all", "lock-all");
-    private final Button reset = button("Reset preview", "reset-preview");
+    private final Button reset = button("Reset", "reset-preview");
     private final Button commit = button("Commit", "commit-preview");
-    private final Button reload = button("Reload", "reload-achievements");
+    private final Button reload = button("↻", "reload-achievements");
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
     private AchievementPreview preview = new AchievementPreview(java.util.List.of());
     private Game game;
@@ -42,29 +41,30 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         this.api = api;
         getStyleClass().add("editor-page");
         title.setId("editor-game-name");
-        title.setWrapText(true);
-        var header = new VBox(10, label("ACHIEVEMENT EDITOR", "accent-eyebrow"), title, subtitle);
-        header.getStyleClass().add("editor-header");
-        var warning = label("PREVIEW ONLY · Changes stay in this window. Nothing is sent to Steam.", "preview-banner");
-        warning.setWrapText(true);
-        var space = new Region();
-        HBox.setHgrow(space, Priority.ALWAYS);
+        title.setMaxWidth(Double.MAX_VALUE);
+        title.setMinWidth(0);
+        title.setTextOverrun(OverrunStyle.ELLIPSIS);
+        var heading = new VBox(2, title, subtitle);
+        heading.setMinWidth(0);
+        HBox.setHgrow(heading, Priority.ALWAYS);
         commit.getStyleClass().setAll("primary-button");
-        var toolbar = new HBox(8, unlock, lock, reset, space, commit);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
-        var status = new HBox(12, pending, reload);
-        status.setAlignment(Pos.CENTER_LEFT);
+        reload.setTooltip(new Tooltip("Reload achievements"));
+        reset.setTooltip(new Tooltip("Reset local changes"));
+        var header = new HBox(7, heading, reload, unlock, lock, reset, commit);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("editor-header");
         notice.setWrapText(true);
         notice.setId("achievement-notice");
-        pending.setId("preview-count");
+        notice.visibleProperty().bind(notice.textProperty().isNotEmpty());
+        notice.managedProperty().bind(notice.visibleProperty());
         empty.setWrapText(true);
         empty.setMaxWidth(420);
         list.setId("achievement-list");
         list.getStyleClass().add("achievement-list");
-        list.setFixedCellSize(112);
+        list.setFixedCellSize(56);
         list.setPlaceholder(empty);
         list.setCellFactory(view -> new AchievementCell());
-        var body = new VBox(14, warning, toolbar, status, notice, list);
+        var body = new VBox(6, notice, list);
         body.getStyleClass().add("achievement-body");
         VBox.setVgrow(list, Priority.ALWAYS);
         VBox.setVgrow(body, Priority.ALWAYS);
@@ -72,8 +72,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         unlock.setOnAction(e -> { preview.setAll(true); changed(); });
         lock.setOnAction(e -> { preview.setAll(false); changed(); });
         reset.setOnAction(e -> { preview.reset(); changed(); });
-        commit.setOnAction(e -> notice.setText("Preview only: " + preview.changeCount()
-                + " change(s). Nothing was sent to Steam. Commit is not implemented yet."));
+        commit.setOnAction(e -> notice.setText("Commit is not implemented yet. Nothing was sent to Steam."));
         reload.setOnAction(e -> load());
         updateControls();
     }
@@ -86,6 +85,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         key = apiKey;
         steamId = account;
         title.setText(next == null ? "Choose a game" : next.name());
+        title.setTooltip(next == null ? null : new Tooltip(next.name()));
         subtitle.setText(next == null ? "Select a game from the sidebar" : "APP " + next.appId());
         if (next == null) {
             clear();
@@ -139,7 +139,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
 
     private void changed() {
         notice.setText(dataNotice);
-        pending.setText(preview.changeCount() + " preview changes");
         list.refresh();
         updateControls();
     }
@@ -166,7 +165,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         } catch (IllegalArgumentException ex) { return null; }
         Image image = icons.get(url);
         if (image == null) {
-            image = new Image(url, 48, 48, true, true, true);
+            image = new Image(url, 32, 32, true, true, true);
             icons.put(url, image);
             if (icons.size() > 100) icons.remove(icons.keySet().iterator().next());
         }
@@ -178,23 +177,22 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         private final ImageView image = new ImageView();
         private final Label name = label("", "achievement-name");
         private final Label description = label("", "achievement-description");
-        private final Label id = label("", "achievement-id");
         private final Label state = label("", "achievement-state");
         private final HBox row;
 
         AchievementCell() {
-            image.setFitWidth(48);
-            image.setFitHeight(48);
+            image.setFitWidth(32);
+            image.setFitHeight(32);
             var cover = new StackPane(image);
-            cover.setMinSize(48, 48);
-            cover.setMaxSize(48, 48);
+            cover.setMinSize(32, 32);
+            cover.setMaxSize(32, 32);
             cover.getStyleClass().add("achievement-cover");
-            var text = new VBox(5, name, description, id);
+            var text = new VBox(3, name, description);
             text.setMinWidth(0);
             name.setMaxWidth(Double.MAX_VALUE);
             description.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(text, Priority.ALWAYS);
-            row = new HBox(14, check, cover, text, state);
+            row = new HBox(10, check, cover, text, state);
             row.setAlignment(Pos.CENTER_LEFT);
             row.getStyleClass().add("achievement-row");
             check.setOnAction(e -> {
@@ -227,8 +225,8 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             name.setText(achievement.name());
             description.setText(achievement.description().isBlank() ? "No description provided" : achievement.description());
             description.setTooltip(new Tooltip(achievement.description()));
-            id.setText(achievement.id());
-            state.setText(unknown ? "UNAVAILABLE" : (edited ? "PREVIEW: " : "") + (unlocked ? "UNLOCKED" : "LOCKED"));
+            name.setTooltip(new Tooltip(achievement.name() + "\n" + achievement.id()));
+            state.setText(unknown ? "UNAVAILABLE" : (edited ? "• " : "") + (unlocked ? "UNLOCKED" : "LOCKED"));
             setGraphic(row);
             row.prefWidthProperty().bind(widthProperty().subtract(4));
         }

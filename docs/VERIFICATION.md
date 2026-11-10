@@ -32,3 +32,12 @@ Windows/Linux source run commands are documented but have not been runtime-teste
 - The Commit message explicitly confirmed that nothing was sent to Steam. All remote achievement operations are GET requests; the application contains no achievement-write endpoint or native integration.
 - Screenshots remain in ignored `target/verification`. The achievement layout was visually inspected on macOS.
 - The macOS development bundle is rebuilt for this milestone. Windows/Linux runtime validation remains pending.
+
+## Compact Steam-style layout revision
+
+- Replaced the duplicate workspace masthead, large game heading, banners, and stacked controls with one compact title bar.
+- Reduced achievement rows from 112 to 56 pixels, icons from 48 to 32 pixels, and moved API identifiers to tooltips.
+- Removed persistent preview warnings and counters. Informational/error text uses space only when present; Commit remains a dummy action.
+- Applied charcoal/navy backgrounds and Steam-style blue accents throughout, including unlocked rows and selected sidebar games.
+- All 23 tests passed after the layout change. The graphical live check verified a list starting within 90 pixels of the top and rows no taller than 60 pixels, along with the existing controls and search checks.
+- At 1180×800, about 13 achievements fit in the main pane, versus about three in the prior layout.

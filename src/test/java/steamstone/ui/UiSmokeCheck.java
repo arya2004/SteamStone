@@ -92,6 +92,12 @@ public final class UiSmokeCheck {
                 if (list.localToScene(list.getBoundsInLocal()).getMinX() > 300) {
                     throw new AssertionError("Game list is not in the sidebar");
                 }
+                view.applyCss();
+                view.layout();
+                if (achievements.localToScene(achievements.getBoundsInLocal()).getMinY() > 90) {
+                    throw new AssertionError("Editor header takes too much space");
+                }
+                if (achievements.getFixedCellSize() > 60) throw new AssertionError("Rows are not compact");
                 snapshot(output.resolve("library.png"));
                 var unlockAll = (Button) view.lookup("#unlock-all");
                 var lockAll = (Button) view.lookup("#lock-all");
@@ -107,13 +113,13 @@ public final class UiSmokeCheck {
                     throw new AssertionError("Commit preview message missing");
                 }
                 ((Button) view.lookup("#reset-preview")).fire();
-                if (!((Label) view.lookup("#preview-count")).getText().startsWith("0 ")) {
+                if (!commit.isDisabled()) {
                     throw new AssertionError("Reset did not clear preview");
                 }
                 var checkbox = (javafx.scene.control.CheckBox) achievements.lookup(".check-box");
                 if (checkbox == null || checkbox.isDisabled()) throw new AssertionError("No editable visible checkbox");
                 checkbox.fire();
-                if (!((Label) view.lookup("#preview-count")).getText().startsWith("1 ")) {
+                if (commit.isDisabled()) {
                     throw new AssertionError("Checkbox did not stage a preview");
                 }
                 ((Button) view.lookup("#reset-preview")).fire();

@@ -38,7 +38,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Label libraryStatus = new Label();
     private final Label profileName = new Label();
     private final Label gameCount = new Label("0");
-    private final Label accountBadge = new Label("NOT CONNECTED");
     private final AchievementEditor editor;
     private final Label sidebarEmptyMessage = new Label("Connect your library to see your games.");
     private final TextField search = new TextField();
@@ -63,7 +62,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         screens.getChildren().addAll(connectionScreen, libraryScreen);
         showLibrary(false);
 
-        var workspace = new VBox(0, masthead(), screens);
+        var workspace = new VBox(0, screens);
         VBox.setVgrow(screens, Priority.ALWAYS);
         setCenter(workspace);
 
@@ -132,17 +131,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         box.setMaxWidth(300);
         box.getStyleClass().add("sidebar");
         return box;
-    }
-
-    private Node masthead() {
-        var grow = new Region();
-        HBox.setHgrow(grow, Priority.ALWAYS);
-        accountBadge.getStyleClass().add("account-badge");
-        var bar = new HBox(10, label("WORKSPACE", "masthead-muted"), label("/", "masthead-muted"),
-                label("Achievement editor", "masthead-current"), grow, accountBadge);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("masthead");
-        return bar;
     }
 
     private VBox connectionScreen() {
@@ -229,8 +217,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             keyField.clear();
             profileName.setText(library.playerName());
             gameCount.setText(String.format(Locale.ROOT, "%,d", library.games().size()));
-            accountBadge.setText("●  CONNECTED TO STEAM");
-            if (!accountBadge.getStyleClass().contains("connected")) accountBadge.getStyleClass().add("connected");
             search.setDisable(false);
             disconnectButton.setDisable(false);
             filterGames();
@@ -294,8 +280,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         hide(connectionError);
         hide(connectionStatus);
         setBusy(false);
-        accountBadge.setText("NOT CONNECTED");
-        accountBadge.getStyleClass().removeIf("connected"::equals);
         profileName.setText("Not connected");
         gameCount.setText("0");
         search.setDisable(true);
