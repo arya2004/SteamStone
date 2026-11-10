@@ -70,7 +70,7 @@ public final class UiSmokeCheck {
 
         @SuppressWarnings("unchecked")
         private void checkLoaded(Path output) {
-            if (++ticks > 55) { fail(); return; }
+            if (++ticks > 90) { fail(); return; }
             var count = (Label) view.lookup("#game-count");
             if (count == null || count.getText().equals("0")) return;
             try {
@@ -100,6 +100,12 @@ public final class UiSmokeCheck {
                 if (achievements.getFixedCellSize() > 60) throw new AssertionError("Rows are not compact");
                 snapshot(output.resolve("library.png"));
                 var unlockAll = (Button) view.lookup("#unlock-all");
+                if (unlockAll.isDisabled()) throw new AssertionError("Native edit session is unavailable");
+                var rows = (ListView<steamstone.model.Achievement>) achievements;
+                if (rows.getItems().getFirst().description().isBlank()
+                        || rows.getItems().getFirst().description().equals("Hidden achievement")) {
+                    throw new AssertionError("Actual achievement description missing");
+                }
                 var lockAll = (Button) view.lookup("#lock-all");
                 unlockAll.fire();
                 lockAll.fire();
@@ -108,10 +114,7 @@ public final class UiSmokeCheck {
                     unlockAll.fire();
                 }
                 if (commit.isDisabled()) throw new AssertionError("No local preview changes produced");
-                commit.fire();
-                if (!((Label) view.lookup("#achievement-notice")).getText().contains("Nothing was sent to Steam")) {
-                    throw new AssertionError("Commit preview message missing");
-                }
+                // Commit is real now. This read-only check must never fire it.
                 ((Button) view.lookup("#reset-preview")).fire();
                 if (!commit.isDisabled()) {
                     throw new AssertionError("Reset did not clear preview");
@@ -129,7 +132,7 @@ public final class UiSmokeCheck {
                 if (list.getItems().isEmpty() || list.getItems().size() > total) throw new AssertionError("Search failed");
                 search.clear();
                 if (list.getItems().size() != total) throw new AssertionError("Search clear did not restore rows");
-                System.out.println("Graphical live check passed: " + total + " games; " + achievements.getItems().size() + " achievements; checkbox, bulk preview, dummy Commit, reset, search and credential-field clearing verified.");
+                System.out.println("Graphical live check passed: " + total + " games; " + achievements.getItems().size() + " achievements; checkbox, bulk preview, pending commit enablement (no write), reset, search and credential-field clearing verified.");
                 view.close();
                 Platform.exit();
             } catch (Throwable ex) { fail(); }

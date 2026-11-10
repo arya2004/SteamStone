@@ -41,3 +41,25 @@ Windows/Linux source run commands are documented but have not been runtime-teste
 - Applied charcoal/navy backgrounds and Steam-style blue accents throughout, including unlocked rows and selected sidebar games.
 - All 23 tests passed after the layout change. The graphical live check verified a list starting within 90 pixels of the top and rows no taller than 60 pixels, along with the existing controls and search checks.
 - At 1180×800, about 13 achievements fit in the main pane, versus about three in the prior layout.
+
+## Milestone 3: native achievement editing
+
+This supersedes earlier notes describing Commit as dummy/read-only.
+
+- Clean Maven verification: 35 tests passed, including native commit engine failure/conflict/timeout/readback cases and callback correlation.
+- Read-only native session for App ID 1182900 returned known achievement states and actual descriptions on Apple Silicon.
+- Graphical live verification loaded 62 games and 35 achievements, showed actual hidden-achievement descriptions, and checked local staging/reset/Commit enablement without executing a write.
+- The compact blue UI screenshot was inspected. The Mac bundle now includes a separate native worker launcher.
+- Actual live write verification remains pending a specific authorized achievement/action. Simulated storage acknowledgment is not presented as live Steam write verification.
+- Details and behavior are documented in NATIVE_EDITOR.md. Windows/Linux runtime verification remains pending.
+
+### Authorized live write and restoration result
+
+The user selected A Plague Tale: Requiem and requested testing with original-state restoration.
+
+- Saved all 35 native achievement states and unlock times before writing.
+- Selected originally locked ACH_20. Steam acknowledged unlocking it; a fresh worker session verified the unlocked state and verified every other achievement stayed unchanged.
+- Steam acknowledged clearing ACH_20. A fresh worker session confirmed all 35 states matched the saved baseline and existing unlocked-achievement timestamps were unchanged.
+- The final native app worker also passed read-only metadata loading and account-mismatch rejection using its bundled runtime with an invalid system JAVA_HOME.
+- The earlier “live write pending” note above is superseded by these results. Other games and Windows/Linux writes remain unverified.
+- Snapshot/results are under ignored `target/verification/requiem-*.json`; the optional test harness requires an explicit live-write opt-in and always attempts restoration in its finally block.

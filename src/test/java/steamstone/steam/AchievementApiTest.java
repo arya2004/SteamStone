@@ -52,7 +52,7 @@ class AchievementApiTest {
         assertEquals(Achievement.State.UNLOCKED, first.state());
         assertEquals(12345, first.unlockTime());
         assertEquals(Achievement.State.LOCKED, result.achievements().get(1).state());
-        assertEquals("Hidden achievement", result.achievements().get(1).description());
+        assertEquals("", result.achievements().get(1).description());
         assertTrue(result.notice().isBlank());
         assertTrue(credentialsCorrect);
         assertEquals(2, calls.get());
@@ -91,6 +91,10 @@ class AchievementApiTest {
     @Test void rejectsDuplicateStates() {
         player = player.replace("SECRET", "FIRST");
         assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, 10));
+    }
+    @Test void usesPlayerDescriptionWhenSchemaOmitsHiddenDescription() throws Exception {
+        player = player.replace("\"apiname\":\"SECRET\",\"achieved\":0", "\"apiname\":\"SECRET\",\"achieved\":0,\"description\":\"Find the secret door\"");
+        assertEquals("Find the secret door", api.loadAchievements(KEY, ID, 10).achievements().get(1).description());
     }
     @Test void validatesContextBeforeRequests() {
         assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, -1));

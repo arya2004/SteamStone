@@ -14,6 +14,7 @@ public final class AchievementPreview {
     }
 
     public List<Achievement> achievements() { return achievements; }
+    public Map<String, Boolean> changes() { return Map.copyOf(changes); }
     public int changeCount() { return changes.size(); }
     public boolean isChanged(Achievement achievement) { return changes.containsKey(achievement.id()); }
     public boolean isUnlocked(Achievement achievement) {

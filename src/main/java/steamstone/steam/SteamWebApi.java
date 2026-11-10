@@ -169,8 +169,8 @@ public final class SteamWebApi {
             String name = definition.path("displayName").asText(id);
             if (name.isBlank()) name = id;
             String description = definition.path("description").asText("");
-            if (description.isBlank() && definition.path("hidden").asInt() != 0) description = "Hidden achievement";
             JsonNode state = states.get(id);
+            if (description.isBlank() && state != null) description = state.path("description").asText("");
             Achievement.State status = Achievement.State.UNKNOWN;
             long time = 0;
             if (state != null && state.path("achieved").isIntegralNumber()) {

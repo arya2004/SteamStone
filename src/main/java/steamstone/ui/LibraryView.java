@@ -57,6 +57,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         editor = new AchievementEditor(api);
         getStyleClass().add("app-root");
         setLeft(sidebar());
+        getLeft().disableProperty().bind(editor.committingProperty());
         connectionScreen = connectionScreen();
         libraryScreen = libraryScreen();
         screens.getChildren().addAll(connectionScreen, libraryScreen);
@@ -78,7 +79,13 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         disconnectButton.setOnAction(event -> disconnect());
         search.textProperty().addListener((obs, before, after) -> filterGames());
         gameList.getSelectionModel().selectedItemProperty().addListener((obs, before, game) -> {
-            if (game != null) selectGame(game);
+            if (game != null) {
+                if (!editor.isCurrentGame(game) && !editor.discardPendingIfNeeded()) {
+                    gameList.getSelectionModel().select(before);
+                    return;
+                }
+                selectGame(game);
+            }
         });
     }
 
@@ -267,6 +274,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void disconnect() {
+        if (!editor.discardPendingIfNeeded()) return;
         if (currentTask != null) currentTask.cancel(true);
         currentTask = null;
         sessionKey = null;
@@ -368,6 +376,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
     private static void hide(Node node) { node.setVisible(false); node.setManaged(false); }
     private static void show(Node node) { node.setVisible(true); node.setManaged(true); }
+
+    public boolean canClose() { return editor.discardPendingIfNeeded(); }
 
     @Override public void close() {
         if (currentTask != null) currentTask.cancel(true);

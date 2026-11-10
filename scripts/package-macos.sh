@@ -10,7 +10,12 @@ fi
 mkdir -p target/package-input/lib target/dist
 cp target/steamstone.jar target/package-input/
 cp target/lib/*.jar target/package-input/lib/
-jpackage --type app-image --name SteamStone --app-version 1.0.0 \
+cp -R licenses target/package-input/
+cat > target/worker-launcher.properties <<'EOF'
+main-class=steamstone.steam.nativeapi.NativeWorker
+java-options=--enable-native-access=ALL-UNNAMED
+EOF
+jpackage --add-launcher SteamStoneWorker=target/worker-launcher.properties --type app-image --name SteamStone --app-version 1.0.0 \
   --vendor SteamStone --input target/package-input --main-jar steamstone.jar \
   --main-class steamstone.Main --dest target/dist \
   --java-options '--module-path=$APPDIR/lib' \
