@@ -28,6 +28,9 @@ import steamstone.steam.nativeapi.worker.NativeWorker;
  * Bounded subprocess calls; temp files contain context/edits, never the API key.
  */
 public final class NativeSteam {
+    private static final String OS_NAME_PROPERTY = "os.name";
+    private static final String JAVA_HOME_PROPERTY = "java.home";
+
     private static final String SESSION_TEMP_PREFIX = "steamstone-session-";
     private static final String RUNTIME_CHECK_TEMP_PREFIX = "steamstone-runtime-check-";
     private static final String REQUEST_FILE_NAME = "request.json";
@@ -112,16 +115,16 @@ public final class NativeSteam {
 
     private List<String> workerCommand() {
         final var command = new ArrayList<String>();
-        final var os = System.getProperty(NativeRuntimeConstants.OS_NAME_PROPERTY);
+        final var os = System.getProperty(OS_NAME_PROPERTY);
         final var worker = os.startsWith(MAC_OS_PREFIX) ? MAC_WORKER_PATH
                 : os.startsWith(WINDOWS_OS_PREFIX) ? WINDOWS_WORKER_PATH : UNIX_WORKER_PATH;
         final var packaged =
-                Path.of(System.getProperty(NativeRuntimeConstants.JAVA_HOME_PROPERTY)).resolve(worker).normalize();
+                Path.of(System.getProperty(JAVA_HOME_PROPERTY)).resolve(worker).normalize();
         if (Files.isExecutable(packaged)) {
             command.add(packaged.toString());
         } else {
             final var executable = os.startsWith(WINDOWS_OS_PREFIX) ? WINDOWS_JAVA_EXECUTABLE : UNIX_JAVA_EXECUTABLE;
-            final var java = Path.of(System.getProperty(NativeRuntimeConstants.JAVA_HOME_PROPERTY), JAVA_BIN_DIRECTORY,
+            final var java = Path.of(System.getProperty(JAVA_HOME_PROPERTY), JAVA_BIN_DIRECTORY,
                     executable);
             if (!Files.isExecutable(java)) {
                 throw new StoneException("Bundled Steam worker launcher is missing.");

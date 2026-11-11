@@ -20,6 +20,11 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
  * Two documented flat C API reads missing from steamworks4j 1.10.0. SDK/runtime version is pinned.
  */
 public final class SteamAttributes implements AutoCloseable {
+    private static final String USER_STATS_SYMBOL = "SteamAPI_SteamUserStats_v013";
+    private static final String ACHIEVEMENT_ATTRIBUTE_SYMBOL =
+            "SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute";
+    private static final String ACHIEVEMENT_STATE_SYMBOL = "SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime";
+
     private static final String DESCRIPTION_ATTRIBUTE = "desc";
     private static final String EMPTY_DESCRIPTION = "";
     private static final long MAX_DESCRIPTION_BYTES = 65_536;
@@ -34,16 +39,16 @@ public final class SteamAttributes implements AutoCloseable {
         try {
             final var symbols = SymbolLookup.libraryLookup(library, arena);
             final var linker = Linker.nativeLinker();
-            final var getter = linker.downcallHandle(symbols.find(SteamNativeConstants.USER_STATS_SYMBOL).orElseThrow(),
+            final var getter = linker.downcallHandle(symbols.find(USER_STATS_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(ADDRESS));
             stats = (MemorySegment) getter.invokeExact();
             if (stats.equals(MemorySegment.NULL))
                 throw new StoneException("Steam stats interface unavailable.");
             attribute = linker.downcallHandle(
-                    symbols.find(SteamNativeConstants.ACHIEVEMENT_ATTRIBUTE_SYMBOL).orElseThrow(),
+                    symbols.find(ACHIEVEMENT_ATTRIBUTE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
             read = linker.downcallHandle(
-                    symbols.find(SteamNativeConstants.ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
+                    symbols.find(ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         } catch (final Throwable exception) {
             try (arena) {

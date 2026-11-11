@@ -1,6 +1,5 @@
 package steamstone.steam.nativeapi.worker;
 
-import steamstone.steam.nativeapi.NativeRuntimeConstants;
 import com.codedisaster.steamworks.SteamLibraryLoader;
 
 import java.net.URISyntaxException;
@@ -14,6 +13,8 @@ import steamstone.exception.StoneException;
  * Load native files prepared at build/install time; never extract libraries at application startup.
  */
 public final class SteamNativeLibraries implements SteamLibraryLoader {
+    private static final String OS_NAME_PROPERTY = "os.name";
+
     private static final String NATIVE_DIRECTORY = "native";
     private static final String OS_ARCH_PROPERTY = "os.arch";
     private static final String MAC_OS_FRAGMENT = "mac";
@@ -42,7 +43,7 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
     }
 
     public Path path(final String name) {
-        final var os = System.getProperty(NativeRuntimeConstants.OS_NAME_PROPERTY).toLowerCase(Locale.ROOT);
+        final var os = System.getProperty(OS_NAME_PROPERTY).toLowerCase(Locale.ROOT);
         final var arch = System.getProperty(OS_ARCH_PROPERTY);
         final String file;
         if (os.contains(MAC_OS_FRAGMENT))

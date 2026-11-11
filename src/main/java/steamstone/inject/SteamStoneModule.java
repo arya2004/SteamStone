@@ -1,6 +1,7 @@
 package steamstone.inject;
 
-import steamstone.steam.SteamConstants;
+import java.time.Duration;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 
@@ -18,6 +19,9 @@ import steamstone.ui.library.LibraryView;
  * Application services are shared; UI instances are created on the JavaFX thread when requested.
  */
 public final class SteamStoneModule extends AbstractModule {
+    private static final String API_BASE_URI = "https://api.steampowered.com/";
+    private static final Duration API_CONNECT_TIMEOUT = Duration.ofSeconds(10);
+
     @Override
     protected void configure() {
         bind(SteamWebApi.class).in(Singleton.class);
@@ -29,12 +33,12 @@ public final class SteamStoneModule extends AbstractModule {
     @Provides
     @Singleton
     public HttpClient httpClient() {
-        return HttpClient.newBuilder().connectTimeout(SteamConstants.API_CONNECT_TIMEOUT)
+        return HttpClient.newBuilder().connectTimeout(API_CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NEVER).build();
     }
 
     @Provides
     public URI steamApiBase() {
-        return URI.create(SteamConstants.API_BASE_URI);
+        return URI.create(API_BASE_URI);
     }
 }

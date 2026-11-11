@@ -36,6 +36,11 @@ import steamstone.model.achievement.AchievementState;
  */
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class SteamWebApi {
+    private static final String API_BASE_URI = "https://api.steampowered.com/";
+    private static final Duration API_CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final String WEB_API_KEY_PATTERN = "[a-fA-F0-9]{32}";
+    private static final long MAX_APP_ID = 0xffffffffL;
+
     private static final String RESPONSE_KEY = "response";
     private static final String STEAM_ID_KEY = "steamid";
     private static final String PLAYERS_KEY = "players";
@@ -90,13 +95,13 @@ public final class SteamWebApi {
     private final ObjectMapper json = new ObjectMapper();
 
     public SteamWebApi() {
-        this(HttpClient.newBuilder().connectTimeout(SteamConstants.API_CONNECT_TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NEVER).build(), URI.create(SteamConstants.API_BASE_URI));
+        this(HttpClient.newBuilder().connectTimeout(API_CONNECT_TIMEOUT)
+                .followRedirects(HttpClient.Redirect.NEVER).build(), URI.create(API_BASE_URI));
     }
 
     public SteamLibrary loadLibrary(final String apiKey, final String profileInput) {
         final var key = apiKey == null ? EMPTY_VALUE : apiKey.strip();
-        if (!key.matches(SteamConstants.WEB_API_KEY_PATTERN)) {
+        if (!key.matches(WEB_API_KEY_PATTERN)) {
             throw new StoneException("Enter the 32-character Steam Web API key from steamcommunity.com/dev/apikey.");
         }
         final var profile = SteamProfile.parse(profileInput);
@@ -148,7 +153,7 @@ public final class SteamWebApi {
             for (final var entry : entries) {
                 final var id = entry.path(APP_ID_KEY);
                 if (!id.isIntegralNumber() || !id.canConvertToLong() || id.asLong() <= 0
-                        || id.asLong() > SteamConstants.MAX_APP_ID) {
+                        || id.asLong() > MAX_APP_ID) {
                     throw new StoneException("Steam returned an invalid game entry. Please retry.");
                 }
                 final var appId = id.asLong();
@@ -171,9 +176,9 @@ public final class SteamWebApi {
     }
 
     public AchievementList loadAchievements(final String apiKey, final String steamId, final long appId) {
-        if (apiKey == null || !apiKey.matches(SteamConstants.WEB_API_KEY_PATTERN) || steamId == null
+        if (apiKey == null || !apiKey.matches(WEB_API_KEY_PATTERN) || steamId == null
                 || !steamId.matches(SteamConstants.STEAM_ID_PATTERN) || appId <= 0 ||
-                appId > SteamConstants.MAX_APP_ID) {
+                appId > MAX_APP_ID) {
             throw new StoneException("A valid account, API key, and game are required.");
         }
         final var schema =
