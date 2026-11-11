@@ -3,6 +3,8 @@ package steamstone.steam;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.inject.Inject;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -20,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import lombok.RequiredArgsConstructor;
 import steamstone.concurrent.StoneFutures;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
@@ -31,6 +34,7 @@ import steamstone.model.achievement.AchievementState;
 /**
  * Read-only, documented Steam Web API. No global catalogs or internal Steam files.
  */
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class SteamWebApi {
     private final HttpClient client;
     private final URI base;
@@ -40,11 +44,6 @@ public final class SteamWebApi {
     public SteamWebApi() {
         this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
                 .followRedirects(HttpClient.Redirect.NEVER).build(), URI.create("https://api.steampowered.com/"));
-    }
-
-    public SteamWebApi(final HttpClient client, final URI base) {
-        this.client = client;
-        this.base = base;
     }
 
     public SteamLibrary loadLibrary(final String apiKey, final String profileInput) {

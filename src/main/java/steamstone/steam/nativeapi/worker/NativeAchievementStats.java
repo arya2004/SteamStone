@@ -4,23 +4,20 @@ import com.codedisaster.steamworks.SteamAPI;
 import com.codedisaster.steamworks.SteamResult;
 import com.codedisaster.steamworks.SteamUserStats;
 
+import jakarta.inject.Inject;
+
 import java.time.Duration;
 
+import lombok.RequiredArgsConstructor;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.commit.AchievementStats;
 import steamstone.steam.nativeapi.protocol.Entry;
 
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class NativeAchievementStats implements AchievementStats {
     private final SteamUserStats stats;
     private final SteamAttributes attributes;
     private final StorageCallback callback;
-
-    public NativeAchievementStats(final SteamUserStats stats, final SteamAttributes attributes,
-                                  final StorageCallback callback) {
-        this.stats = stats;
-        this.attributes = attributes;
-        this.callback = callback;
-    }
 
     @Override
     public Entry read(final String id) {

@@ -1,19 +1,19 @@
 package steamstone.ui.task;
 
+import jakarta.inject.Inject;
+
 import java.util.function.Supplier;
 
 import javafx.concurrent.Task;
+import lombok.RequiredArgsConstructor;
 import steamstone.exception.StoneException;
 
 /**
  * Runs an application operation through JavaFX's observable task lifecycle.
  */
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class StoneTask<T> extends Task<T> {
     private final Supplier<T> operation;
-
-    public StoneTask(final Supplier<T> operation) {
-        this.operation = operation;
-    }
 
     @Override
     protected T call() {

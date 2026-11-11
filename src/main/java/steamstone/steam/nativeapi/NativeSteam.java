@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.inject.Inject;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -104,7 +106,7 @@ public final class NativeSteam {
             command.add("-cp");
             final var classpath = new LinkedHashSet<String>();
             for (final var type : List.of(NativeWorker.class, ObjectMapper.class, JsonNode.class,
-                    JsonFactory.class, JsonCreator.class, SteamAPI.class)) {
+                    JsonFactory.class, JsonCreator.class, SteamAPI.class, Inject.class)) {
                 try {
                     classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString());
                 } catch (final URISyntaxException exception) {
