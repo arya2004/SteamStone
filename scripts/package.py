@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a runtime-inclusive app image and a platform download. Python standard library only."""
+"""Build a runtime-inclusive app image and platform downloads. Python standard library only."""
 import argparse
 import hashlib
 import os
@@ -91,6 +91,25 @@ def windows_installer(jpackage, image, version, destination):
     return installer
 
 
+def windows_downloads(jpackage, image, version, destination):
+    """Offer setup and a portable copy of the same checked app image."""
+    installer = windows_installer(jpackage, image, version, destination)
+    portable = Path(shutil.make_archive(
+        str(destination / f"SteamStone-{version}-windows-x64"), "zip",
+        root_dir=image.parent, base_dir=image.name))
+    return installer, portable
+
+
+def write_checksum(download):
+    digest = hashlib.sha256()
+    with download.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    Path(str(download) + ".sha256").write_text(
+        f"{digest.hexdigest()}  {download.name}\n", encoding="utf-8", newline="\n")
+    print(f"Created {download} and its SHA-256 checksum.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", help="Release version; must match pom.xml")
@@ -173,21 +192,16 @@ def main():
     if system == "Darwin":
         archive = Path(str(base) + ".zip")
         run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", image, archive])
+        downloads = (archive,)
     elif system == "Windows":
-        archive = windows_installer(jpackage, image, version, releases)
-        # Stop publishing the previous Windows ZIP if this directory was reused for the same version.
-        for old in (Path(str(base) + ".zip"), Path(str(base) + ".zip.sha256")):
-            old.unlink(missing_ok=True)
+        downloads = windows_downloads(jpackage, image, version, releases)
     else:
         archive = Path(str(base) + ".tar.gz")
         with tarfile.open(archive, "w:gz") as output:
             output.add(image, arcname=image.name)
-    digest = hashlib.sha256()
-    with archive.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    Path(str(archive) + ".sha256").write_text(f"{digest.hexdigest()}  {archive.name}\n", encoding="utf-8", newline="\n")
-    print(f"Created {archive} and its SHA-256 checksum.")
+        downloads = (archive,)
+    for download in downloads:
+        write_checksum(download)
 
 
 if __name__ == "__main__":

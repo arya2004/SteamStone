@@ -10,10 +10,11 @@ Get SteamStone from the [Releases page](https://github.com/arya2004/SteamStone/r
 | --- | --- | --- |
 | Mac with Apple Silicon (M1 or newer) | `SteamStone-<version>-macos-arm64.zip` | Unzip, drag SteamStone into Applications, and open it |
 | Intel Mac | `SteamStone-<version>-macos-x64.zip` | Unzip, drag SteamStone into Applications, and open it |
-| Windows 64-bit | `SteamStone-<version>-windows-x64-setup.exe` | Run the setup wizard, then open SteamStone from the Start menu |
+| Windows 64-bit — installer | `SteamStone-<version>-windows-x64-setup.exe` | Run the setup wizard, then open SteamStone from the Start menu |
+| Windows 64-bit — portable | `SteamStone-<version>-windows-x64.zip` | Extract the ZIP, keep the folder together, and run `SteamStone/SteamStone.exe` |
 | Linux 64-bit (x86_64) | `SteamStone-<version>-linux-x64.tar.gz` | Extract it, then run `SteamStone/bin/SteamStone` |
 
-**You do not need to install Java or any developer tools.** The Windows setup wizard installs SteamStone and its bundled Java runtime for your account and lets you choose its location and shortcuts. Open it normally after installation; there is no temporary unpacking step each time you launch. You can remove it through Windows Settings → Apps. Keep the extracted Linux app folder together; Linux needs a graphical desktop with GTK 3.
+**You do not need to install Java or any developer tools.** Both Windows downloads include Java. The setup wizard installs SteamStone for your account and lets you choose its location and shortcuts; you can remove it through Windows Settings → Apps. The portable ZIP needs no installation: extract it once, run `SteamStone.exe` inside its folder, and keep the runtime and other files beside it. Keep the extracted Linux app folder together; Linux needs a graphical desktop with GTK 3.
 
 If there are no release downloads yet, a public build has not been published. The repository's **Code → Download ZIP** button downloads source code, not a runnable app.
 
