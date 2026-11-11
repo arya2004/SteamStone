@@ -1,5 +1,7 @@
 package steamstone.steam;
 
+import steamstone.exception.StoneException;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,7 +22,7 @@ class SteamProfileTest {
         for (String value : new String[]{"https://example.com/id/user", "https://steamcommunity.com.evil.test/id/user",
                 "https://steamcommunity.com@evil.test/id/user", "https://steamcommunity.com/id/user/extra",
                 "http://steamcommunity.com/id/user", "https://steamcommunity.com:1234/id/user", "12345", ""}) {
-            assertThrows(IllegalArgumentException.class, () -> SteamProfile.parse(value), value);
+            assertThrows(StoneException.class, () -> SteamProfile.parse(value), value);
         }
     }
 }

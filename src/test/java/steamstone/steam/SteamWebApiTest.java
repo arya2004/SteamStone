@@ -1,5 +1,7 @@
 package steamstone.steam;
 
+import steamstone.exception.StoneException;
+
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,14 +97,14 @@ class SteamWebApiTest {
 
     @Test
     void rejectsInvalidCredentialsBeforeMakingRequests() {
-        assertThrows(SteamApiException.class, () -> api.loadLibrary("bad-key", ID));
+        assertThrows(StoneException.class, () -> api.loadLibrary("bad-key", ID));
         assertEquals(0, requests.get());
     }
 
     @Test
     void doesNotTreatAPrivateOrUnavailableLibraryAsEmpty() {
         ownedBody = "{\"response\":{}}";
-        var error = assertThrows(SteamApiException.class, () -> api.loadLibrary(KEY, ID));
+        var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         assertTrue(error.getMessage().contains("did not expose"));
     }
 
@@ -115,16 +117,16 @@ class SteamWebApiTest {
     @Test
     void rejectsIncompleteSnapshots() {
         ownedBody = "{\"response\":{\"game_count\":3,\"games\":[{\"appid\":10,\"name\":\"One\"}]}}";
-        var error = assertThrows(SteamApiException.class, () -> api.loadLibrary(KEY, ID));
+        var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         assertTrue(error.getMessage().contains("partial"));
     }
 
     @Test
     void rejectsMalformedAndInvalidGameData() {
         ownedBody = "not-json";
-        assertThrows(SteamApiException.class, () -> api.loadLibrary(KEY, ID));
+        assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         ownedBody = "{\"response\":{\"game_count\":1,\"games\":[{\"appid\":-1}]}}";
-        assertThrows(SteamApiException.class, () -> api.loadLibrary(KEY, ID));
+        assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
     }
 
     @Test
@@ -132,7 +134,7 @@ class SteamWebApiTest {
         for (int status : new int[]{403, 429, 503, 302}) {
             ownedStatus = status;
             ownedBody = "REMOTE BODY THAT MUST NEVER BE SHOWN " + KEY;
-            var error = assertThrows(SteamApiException.class, () -> api.loadLibrary(KEY, ID));
+            var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
             assertFalse(error.getMessage().contains(KEY));
             assertFalse(error.getMessage().contains("REMOTE BODY"));
         }
@@ -144,5 +146,17 @@ class SteamWebApiTest {
         var result = api.loadLibrary(KEY, ID);
         assertEquals(2, result.games().size());
         assertEquals(ID, result.playerName());
+    }
+
+    @Test
+    public void wrapsInterruptedRequestsWithoutClearingCancellation() {
+        Thread.currentThread().interrupt();
+        try {
+            final var failure = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+            assertTrue(failure.getCause() instanceof InterruptedException);
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
     }
 }

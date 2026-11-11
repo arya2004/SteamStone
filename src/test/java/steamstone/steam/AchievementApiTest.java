@@ -1,5 +1,7 @@
 package steamstone.steam;
 
+import steamstone.exception.StoneException;
+
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.*;
 import steamstone.model.Achievement;
@@ -92,7 +94,7 @@ class AchievementApiTest {
     @Test
     void rejectsDifferentAccount() {
         player = player.replace(ID, "76561198000000001");
-        assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, 10));
+        assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
     }
 
     @Test
@@ -105,15 +107,15 @@ class AchievementApiTest {
     @Test
     void rejectsInvalidDefinitionsAndDuplicateIds() {
         schema = schema.replace("SECRET", "FIRST");
-        assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, 10));
+        assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
         schema = "{\"game\":{\"availableGameStats\":{\"achievements\":{}}}}";
-        assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, 10));
+        assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
     }
 
     @Test
     void rejectsDuplicateStates() {
         player = player.replace("SECRET", "FIRST");
-        assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, 10));
+        assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
     }
 
     @Test
@@ -125,8 +127,8 @@ class AchievementApiTest {
 
     @Test
     void validatesContextBeforeRequests() {
-        assertThrows(SteamApiException.class, () -> api.loadAchievements(KEY, ID, -1));
-        assertThrows(SteamApiException.class, () -> api.loadAchievements("bad", ID, 10));
+        assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, -1));
+        assertThrows(StoneException.class, () -> api.loadAchievements("bad", ID, 10));
         assertEquals(0, calls.get());
     }
 }

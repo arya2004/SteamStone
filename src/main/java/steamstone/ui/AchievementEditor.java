@@ -1,5 +1,7 @@
 package steamstone.ui;
 
+import steamstone.exception.StoneException;
+
 import javafx.concurrent.Task;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -173,7 +175,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                 return;
             task = null;
             empty.setText("Achievements couldn't be loaded. Use Reload to try again.");
-            notice.setText(next.getException() instanceof SteamApiException ex ? ex.getMessage()
+            notice.setText(next.getException() instanceof StoneException ex ? ex.getMessage()
                     : "Unable to load achievements. Please try again.");
             updateControls();
         });

@@ -11,7 +11,7 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Polygon;
 import steamstone.model.Game;
 import steamstone.model.SteamLibrary;
-import steamstone.steam.SteamApiException;
+import steamstone.exception.StoneException;
 import steamstone.steam.SteamWebApi;
 
 import java.time.ZoneId;
@@ -221,7 +221,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
         var task = new Task<SteamLibrary>() {
             @Override
-            protected SteamLibrary call() throws Exception {
+            protected SteamLibrary call() {
                 return api.loadLibrary(nextKey, nextProfile);
             }
         };
@@ -257,7 +257,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             currentTask = null;
             setBusy(false);
             hide(connectionStatus);
-            String message = task.getException() instanceof SteamApiException ex ? ex.getMessage()
+            String message = task.getException() instanceof StoneException ex ? ex.getMessage()
                     : "The library couldn't be loaded. Please try again.";
             if (library == null) {
                 connectionError.setText(message);
