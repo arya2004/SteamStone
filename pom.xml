@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>steamstone</groupId>
   <artifactId>steamstone</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <name>SteamStone</name>
   <description>A desktop Steam achievement editor.</description>
   <url>https://github.com/arya2004/SteamStone</url>

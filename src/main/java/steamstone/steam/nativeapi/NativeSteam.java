@@ -25,6 +25,8 @@ public final class NativeSteam {
             command.add(output.toString());
             var builder = new ProcessBuilder(command);
             builder.directory(directory.toFile());
+            // Linux jpackage's re-exec marker belongs to the parent launcher only.
+            builder.environment().remove("_JPACKAGE_LAUNCHER");
             builder.environment().put("SteamAppId", Long.toString(request.appId()));
             builder.environment().put("SteamGameId", Long.toString(request.appId()));
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
@@ -58,7 +60,9 @@ public final class NativeSteam {
         try {
             var command = workerCommand();
             command.add("--check-runtime");
-            process = new ProcessBuilder(command).directory(directory.toFile()).inheritIO().start();
+            var builder = new ProcessBuilder(command).directory(directory.toFile()).inheritIO();
+            builder.environment().remove("_JPACKAGE_LAUNCHER");
+            process = builder.start();
             if (!process.waitFor(30, TimeUnit.SECONDS)) throw new IllegalStateException("Bundled worker check timed out.");
             if (process.exitValue() != 0) throw new IllegalStateException("Bundled Steam worker check failed.");
         } finally {
