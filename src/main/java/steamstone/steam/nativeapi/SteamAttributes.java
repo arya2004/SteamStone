@@ -3,25 +3,34 @@ package steamstone.steam.nativeapi;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
+
 import steamstone.model.Achievement;
+
 import static java.lang.foreign.ValueLayout.*;
 
-/** Two documented flat C API reads missing from steamworks4j 1.10.0. SDK/runtime version is pinned. */
+/**
+ * Two documented flat C API reads missing from steamworks4j 1.10.0. SDK/runtime version is pinned.
+ */
 final class SteamAttributes implements AutoCloseable {
     private final Arena arena = Arena.ofConfined();
     private final MemorySegment stats;
     private final MethodHandle attribute, read;
+
     SteamAttributes(Path library) throws Throwable {
         var symbols = SymbolLookup.libraryLookup(library, arena);
         var linker = Linker.nativeLinker();
-        var getter = linker.downcallHandle(symbols.find("SteamAPI_SteamUserStats_v013").orElseThrow(), FunctionDescriptor.of(ADDRESS));
+        var getter = linker.downcallHandle(symbols.find("SteamAPI_SteamUserStats_v013").orElseThrow(),
+                FunctionDescriptor.of(ADDRESS));
         stats = (MemorySegment) getter.invokeExact();
-        if (stats.equals(MemorySegment.NULL)) throw new IllegalStateException("Steam stats interface unavailable.");
-        attribute = linker.downcallHandle(symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
+        if (stats.equals(MemorySegment.NULL))
+            throw new IllegalStateException("Steam stats interface unavailable.");
+        attribute = linker.downcallHandle(
+                symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
                 FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         read = linker.downcallHandle(symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
                 FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
     }
+
     NativeProtocol.Entry read(String id) {
         try (var temporary = Arena.ofConfined()) {
             var name = temporary.allocateFrom(id);
@@ -33,7 +42,13 @@ final class SteamAttributes implements AutoCloseable {
             return new NativeProtocol.Entry(!valid ? Achievement.State.UNKNOWN
                     : achieved.get(JAVA_BOOLEAN, 0) ? Achievement.State.UNLOCKED : Achievement.State.LOCKED,
                     description, valid ? Integer.toUnsignedLong(time.get(JAVA_INT, 0)) : 0);
-        } catch (Throwable ex) { throw new IllegalStateException("Steam achievement read failed.", ex); }
+        } catch (Throwable ex) {
+            throw new IllegalStateException("Steam achievement read failed.", ex);
+        }
     }
-    @Override public void close() { arena.close(); }
+
+    @Override
+    public void close() {
+        arena.close();
+    }
 }

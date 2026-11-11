@@ -22,7 +22,9 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Set;
 
-/** Read-only, documented Steam Web API. No global catalogs or internal Steam files. */
+/**
+ * Read-only, documented Steam Web API. No global catalogs or internal Steam files.
+ */
 public final class SteamWebApi {
     private final HttpClient client;
     private final URI base;
@@ -57,7 +59,8 @@ public final class SteamWebApi {
             JsonNode result = get("ISteamUser/ResolveVanityURL/v1/?vanityurl=" + encode(profile.value()), key);
             steamId = result.path("response").path("steamid").asText();
             if (!steamId.matches("[0-9]{17}")) {
-                throw new SteamApiException("That Steam profile could not be found. Check the URL or use your SteamID64.");
+                throw new SteamApiException(
+                        "That Steam profile could not be found. Check the URL or use your SteamID64.");
             }
         }
 
@@ -73,7 +76,8 @@ public final class SteamWebApi {
                     .path("response").path("players");
             if (players.isArray() && !players.isEmpty()) {
                 String candidate = players.get(0).path("personaname").asText();
-                if (!candidate.isBlank()) playerName = candidate;
+                if (!candidate.isBlank())
+                    playerName = candidate;
             }
         } catch (SteamApiException ignored) {
             // Intentionally omit remote response bodies and exceptions from diagnostics.
@@ -84,7 +88,9 @@ public final class SteamWebApi {
     SteamLibrary parseLibrary(JsonNode response, String steamId, String playerName) throws SteamApiException {
         if (!response.isObject() || !response.path("game_count").canConvertToInt()
                 || !response.path("game_count").isIntegralNumber()) {
-            throw new SteamApiException("Steam did not expose this library. Check the profile and set Game details to Public in Steam privacy settings, then retry.");
+            throw new SteamApiException(
+                    "Steam did not expose this library. Check the profile and set Game details to Public in Steam " +
+                            "privacy settings, then retry.");
         }
         int count = response.path("game_count").asInt();
         JsonNode entries = response.path("games");
@@ -101,9 +107,11 @@ public final class SteamWebApi {
                     throw new SteamApiException("Steam returned an invalid game entry. Please retry.");
                 }
                 long appId = id.asLong();
-                if (!seen.add(appId)) continue;
+                if (!seen.add(appId))
+                    continue;
                 String name = entry.path("name").asText("").strip();
-                if (name.isEmpty()) name = "App " + appId; // Explicit identifier placeholder, not invented metadata.
+                if (name.isEmpty())
+                    name = "App " + appId; // Explicit identifier placeholder, not invented metadata.
                 games.add(new Game(appId, name,
                         Math.max(0, entry.path("playtime_forever").asLong()),
                         Math.max(0, entry.path("rtime_last_played").asLong()),
@@ -111,7 +119,8 @@ public final class SteamWebApi {
             }
         }
         if (games.size() != count) {
-            throw new SteamApiException("Steam returned a partial library. Refresh to try again; no cached games were added.");
+            throw new SteamApiException(
+                    "Steam returned a partial library. Refresh to try again; no cached games were added.");
         }
         games.sort(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId));
         return new SteamLibrary(steamId, playerName, games, Instant.now());
@@ -123,7 +132,8 @@ public final class SteamWebApi {
                 || !steamId.matches("[0-9]{17}") || appId <= 0 || appId > 0xffffffffL) {
             throw new SteamApiException("A valid account, API key, and game are required.");
         }
-        JsonNode schema = get("ISteamUserStats/GetSchemaForGame/v2/?appid=" + appId + "&l=english", apiKey).path("game");
+        JsonNode schema =
+                get("ISteamUserStats/GetSchemaForGame/v2/?appid=" + appId + "&l=english", apiKey).path("game");
         if (!schema.isObject() || schema.isEmpty()) {
             throw new SteamApiException("Steam did not provide achievement definitions for this game.");
         }
@@ -131,7 +141,8 @@ public final class SteamWebApi {
         if (definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty())) {
             return new AchievementList(java.util.List.of(), "Steam returned no achievement definitions for this game.");
         }
-        if (!definitions.isArray()) throw new SteamApiException("Steam returned unexpected achievement definitions.");
+        if (!definitions.isArray())
+            throw new SteamApiException("Steam returned unexpected achievement definitions.");
 
         JsonNode player = null;
         String notice = "";
@@ -149,7 +160,8 @@ public final class SteamWebApi {
         var states = new HashMap<String, JsonNode>();
         if (player != null && player.path("success").asBoolean(false)) {
             String returnedId = player.path("steamID").asText(steamId);
-            if (!returnedId.equals(steamId)) throw new SteamApiException("Steam returned achievement data for a different account.");
+            if (!returnedId.equals(steamId))
+                throw new SteamApiException("Steam returned achievement data for a different account.");
             JsonNode entries = player.path("achievements");
             if (entries.isArray()) {
                 for (JsonNode entry : entries) {
@@ -165,28 +177,34 @@ public final class SteamWebApi {
         int unknown = 0;
         for (JsonNode definition : definitions) {
             String id = definition.path("name").asText();
-            if (id.isBlank() || !names.add(id)) throw new SteamApiException("Steam returned invalid achievement identifiers.");
+            if (id.isBlank() || !names.add(id))
+                throw new SteamApiException("Steam returned invalid achievement identifiers.");
             String name = definition.path("displayName").asText(id);
-            if (name.isBlank()) name = id;
+            if (name.isBlank())
+                name = id;
             String description = definition.path("description").asText("");
             JsonNode state = states.get(id);
-            if (description.isBlank() && state != null) description = state.path("description").asText("");
+            if (description.isBlank() && state != null)
+                description = state.path("description").asText("");
             Achievement.State status = Achievement.State.UNKNOWN;
             long time = 0;
             if (state != null && state.path("achieved").isIntegralNumber()) {
                 int achieved = state.path("achieved").asInt(-1);
-                if (achieved == 0) status = Achievement.State.LOCKED;
+                if (achieved == 0)
+                    status = Achievement.State.LOCKED;
                 if (achieved == 1) {
                     status = Achievement.State.UNLOCKED;
                     time = Math.max(0, state.path("unlocktime").asLong());
                 }
             }
-            if (status == Achievement.State.UNKNOWN) unknown++;
+            if (status == Achievement.State.UNKNOWN)
+                unknown++;
             result.add(new Achievement(id, name, description, status, time,
                     definition.path("icon").asText(""), definition.path("icongray").asText("")));
         }
         if (unknown > 0 && notice.isBlank()) {
-            notice = "Steam did not expose the state of " + unknown + " achievement(s). Check Game details visibility; unavailable states are not treated as locked.";
+            notice = "Steam did not expose the state of " + unknown +
+                    " achievement(s). Check Game details visibility; unavailable states are not treated as locked.";
         }
         return new AchievementList(result, notice);
     }
@@ -201,21 +219,26 @@ public final class SteamWebApi {
         try {
             // Complete the body within the request timeout, rather than returning an unbounded stream.
             HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                int status = response.statusCode();
-                if (status == 401 || status == 403) {
-                    throw new SteamApiException("Steam rejected the request. Check your API key and profile access, then retry.");
-                }
-                if (status == 429) throw new SteamApiException("Steam is rate limiting requests. Wait a little before trying again.");
-                if (status != 200) throw new SteamApiException("Steam is unavailable (HTTP " + status + "). Please try again later.");
-                byte[] bytes = response.body();
-                if (bytes.length > MAX_RESPONSE_BYTES) throw new SteamApiException("Steam's response was too large to load safely.");
-                try {
-                    JsonNode value = json.readTree(bytes);
-                    if (value == null) throw new SteamApiException("Steam returned an empty response. Please retry.");
-                    return value;
-                } catch (IOException ignored) {
-                    throw new SteamApiException("Steam returned an unexpected response. Please try again later.");
-                }
+            int status = response.statusCode();
+            if (status == 401 || status == 403) {
+                throw new SteamApiException(
+                        "Steam rejected the request. Check your API key and profile access, then retry.");
+            }
+            if (status == 429)
+                throw new SteamApiException("Steam is rate limiting requests. Wait a little before trying again.");
+            if (status != 200)
+                throw new SteamApiException("Steam is unavailable (HTTP " + status + "). Please try again later.");
+            byte[] bytes = response.body();
+            if (bytes.length > MAX_RESPONSE_BYTES)
+                throw new SteamApiException("Steam's response was too large to load safely.");
+            try {
+                JsonNode value = json.readTree(bytes);
+                if (value == null)
+                    throw new SteamApiException("Steam returned an empty response. Please retry.");
+                return value;
+            } catch (IOException ignored) {
+                throw new SteamApiException("Steam returned an unexpected response. Please try again later.");
+            }
         } catch (java.net.http.HttpTimeoutException ex) {
             throw new SteamApiException("Steam took too long to respond. Check your connection and retry.");
         } catch (IOException ex) {

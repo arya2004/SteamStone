@@ -4,15 +4,20 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.codedisaster.steamworks.SteamAPI;
+
 import java.nio.file.*;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
 import static steamstone.steam.nativeapi.NativeProtocol.*;
 
-/** Bounded subprocess calls; temp files contain context/edits, never the API key. */
+/**
+ * Bounded subprocess calls; temp files contain context/edits, never the API key.
+ */
 public final class NativeSteam {
     private final ObjectMapper json = new ObjectMapper();
+
     public Response execute(Request request) throws Exception {
         Path directory = Files.createTempDirectory("steamstone-session-");
         Process process = null;
@@ -38,7 +43,8 @@ public final class NativeSteam {
                         "Steam session timed out. Changes may still sync; reload before retrying.", Map.of());
             }
             if (!Files.isRegularFile(output) || Files.size(output) > 8_000_000) {
-                throw new IllegalStateException("Steam worker exited without a valid result. Reload before retrying; changes may still sync.");
+                throw new IllegalStateException(
+                        "Steam worker exited without a valid result. Reload before retrying; changes may still sync.");
             }
             Response result = json.readValue(output.toFile(), Response.class);
             if (result.appId() != request.appId() || !result.steamId().equals(request.steamId())) {
@@ -46,14 +52,20 @@ public final class NativeSteam {
             }
             return result;
         } finally {
-            if (process != null && process.isAlive()) { process.destroyForcibly(); process.waitFor(); }
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+                process.waitFor();
+            }
             try (var paths = Files.walk(directory)) {
-                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
+                    Files.deleteIfExists(path);
             }
         }
     }
 
-    /** Packaging probe: exercise the same child launcher as real operations, without opening Steam. */
+    /**
+     * Packaging probe: exercise the same child launcher as real operations, without opening Steam.
+     */
     public void checkRuntime() throws Exception {
         Path directory = Files.createTempDirectory("steamstone-runtime-check-");
         Process process = null;
@@ -63,12 +75,18 @@ public final class NativeSteam {
             var builder = new ProcessBuilder(command).directory(directory.toFile()).inheritIO();
             builder.environment().remove("_JPACKAGE_LAUNCHER");
             process = builder.start();
-            if (!process.waitFor(30, TimeUnit.SECONDS)) throw new IllegalStateException("Bundled worker check timed out.");
-            if (process.exitValue() != 0) throw new IllegalStateException("Bundled Steam worker check failed.");
+            if (!process.waitFor(30, TimeUnit.SECONDS))
+                throw new IllegalStateException("Bundled worker check timed out.");
+            if (process.exitValue() != 0)
+                throw new IllegalStateException("Bundled Steam worker check failed.");
         } finally {
-            if (process != null && process.isAlive()) { process.destroyForcibly(); process.waitFor(); }
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+                process.waitFor();
+            }
             try (var paths = Files.walk(directory)) {
-                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
+                    Files.deleteIfExists(path);
             }
         }
     }
@@ -80,11 +98,13 @@ public final class NativeSteam {
         String worker = os.startsWith("Mac") ? "../../../MacOS/SteamStoneWorker"
                 : os.startsWith("Windows") ? "../SteamStoneWorker.exe" : "../../bin/SteamStoneWorker";
         Path packaged = Path.of(System.getProperty("java.home")).resolve(worker).normalize();
-        if (Files.isExecutable(packaged)) command.add(packaged.toString());
+        if (Files.isExecutable(packaged))
+            command.add(packaged.toString());
         else {
             String exe = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
             Path java = Path.of(System.getProperty("java.home"), "bin", exe);
-            if (!Files.isExecutable(java)) throw new IllegalStateException("Bundled Steam worker launcher is missing.");
+            if (!Files.isExecutable(java))
+                throw new IllegalStateException("Bundled Steam worker launcher is missing.");
             command.add(java.toString());
             command.add("--enable-native-access=ALL-UNNAMED");
             command.add("-cp");

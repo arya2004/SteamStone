@@ -18,12 +18,16 @@ public final class SteamStoneApp extends Application {
         stage.setMinWidth(940);
         stage.setMinHeight(700);
         stage.setScene(scene);
-        stage.setOnCloseRequest(event -> { if (!libraryView.canClose()) event.consume(); });
+        stage.setOnCloseRequest(event -> {
+            if (!libraryView.canClose())
+                event.consume();
+        });
         stage.show();
     }
 
     @Override
     public void stop() {
-        if (libraryView != null) libraryView.close();
+        if (libraryView != null)
+            libraryView.close();
     }
 }

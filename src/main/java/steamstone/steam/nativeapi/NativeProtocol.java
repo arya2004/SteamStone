@@ -1,12 +1,17 @@
 package steamstone.steam.nativeapi;
 
 import steamstone.model.Achievement;
+
 import java.util.List;
 import java.util.Map;
 
-/** Small file-based protocol. No Web API credentials cross this boundary. */
+/**
+ * Small file-based protocol. No Web API credentials cross this boundary.
+ */
 public final class NativeProtocol {
-    private NativeProtocol() {}
+    private NativeProtocol() {
+    }
+
     public record Request(long appId, String steamId, List<String> ids,
                           Map<String, Boolean> expected, Map<String, Boolean> changes) {
         public Request {
@@ -21,9 +26,15 @@ public final class NativeProtocol {
             }
         }
     }
-    public record Entry(Achievement.State state, String description, long unlockTime) {}
-    public enum Status { READ, CONFIRMED, PARTIAL, REJECTED, CONFLICT, UNKNOWN }
+
+    public record Entry(Achievement.State state, String description, long unlockTime) {
+    }
+
+    public enum Status {READ, CONFIRMED, PARTIAL, REJECTED, CONFLICT, UNKNOWN}
+
     public record Response(long appId, String steamId, Status status, String message, Map<String, Entry> achievements) {
-        public Response { achievements = Map.copyOf(achievements); }
+        public Response {
+            achievements = Map.copyOf(achievements);
+        }
     }
 }

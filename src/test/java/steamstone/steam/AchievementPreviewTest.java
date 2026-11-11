@@ -2,7 +2,9 @@ package steamstone.steam;
 
 import org.junit.jupiter.api.Test;
 import steamstone.model.*;
+
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AchievementPreviewTest {
@@ -10,7 +12,8 @@ class AchievementPreviewTest {
     private final Achievement unlocked = new Achievement("B", "Beta", "", Achievement.State.UNLOCKED, 123, "", "");
     private final Achievement unknown = new Achievement("C", "Gamma", "", Achievement.State.UNKNOWN, 0, "", "");
 
-    @Test void revertingCheckboxRemovesPendingChangeWithoutChangingSteamSnapshot() {
+    @Test
+    void revertingCheckboxRemovesPendingChangeWithoutChangingSteamSnapshot() {
         var preview = new AchievementPreview(List.of(locked, unlocked));
         preview.setUnlocked(locked, true);
         assertEquals(1, preview.changeCount());
@@ -19,7 +22,9 @@ class AchievementPreviewTest {
         preview.setUnlocked(locked, false);
         assertEquals(0, preview.changeCount());
     }
-    @Test void bulkPreviewSkipsUnknownAndResetRestoresOriginal() {
+
+    @Test
+    void bulkPreviewSkipsUnknownAndResetRestoresOriginal() {
         var preview = new AchievementPreview(List.of(locked, unlocked, unknown));
         preview.setAll(true);
         assertEquals(1, preview.changeCount());
@@ -32,7 +37,9 @@ class AchievementPreviewTest {
         assertTrue(preview.isUnlocked(unlocked));
         assertFalse(preview.isUnlocked(locked));
     }
-    @Test void foreignAndUnknownRowsCannotBeEdited() {
+
+    @Test
+    void foreignAndUnknownRowsCannotBeEdited() {
         var preview = new AchievementPreview(List.of(unknown));
         preview.setUnlocked(locked, true);
         preview.setUnlocked(unknown, true);

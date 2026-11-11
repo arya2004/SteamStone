@@ -23,7 +23,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Owns this one screen's state. API requests run outside the JavaFX application thread. */
+/**
+ * Owns this one screen's state. API requests run outside the JavaFX application thread.
+ */
 public final class LibraryView extends BorderPane implements AutoCloseable {
     private final SteamWebApi api;
     private final ExecutorService requests = Executors.newSingleThreadExecutor(
@@ -143,7 +145,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private VBox connectionScreen() {
         var eyebrow = label("YOUR GAMES. YOUR SPACE.", "accent-eyebrow");
         var title = label("Your Steam library,\nin one place.", "welcome-title");
-        var subtitle = label("Bring your collection into SteamStone. Connect once, then browse\nevery game Steam makes available to your account.", "welcome-subtitle");
+        var subtitle =
+                label("Bring your collection into SteamStone. Connect once, then browse\nevery game Steam makes " +
+                                "available to your account.",
+                        "welcome-subtitle");
         subtitle.setWrapText(true);
         var intro = new VBox(14, eyebrow, title, subtitle);
 
@@ -187,7 +192,9 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         return page;
     }
 
-    private VBox libraryScreen() { return editor; }
+    private VBox libraryScreen() {
+        return editor;
+    }
 
     private void selectGame(Game game) {
         selectedGame = game;
@@ -195,26 +202,33 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void connect() {
-        if (currentTask != null) return;
+        if (currentTask != null)
+            return;
         load(keyField.getText(), profileField.getText());
     }
 
     private void load(String key, String profile) {
-        if (currentTask != null) return;
+        if (currentTask != null)
+            return;
         String nextKey = key == null ? "" : key.strip();
         String nextProfile = profile == null ? "" : profile.strip();
         hide(connectionError);
         connectionStatus.setText("Connecting to Steam and loading your library…");
         show(connectionStatus);
         setBusy(true);
-        if (library != null) libraryStatus.setText("Refreshing from Steam… Your current list is still visible.");
+        if (library != null)
+            libraryStatus.setText("Refreshing from Steam… Your current list is still visible.");
 
         var task = new Task<SteamLibrary>() {
-            @Override protected SteamLibrary call() throws Exception { return api.loadLibrary(nextKey, nextProfile); }
+            @Override
+            protected SteamLibrary call() throws Exception {
+                return api.loadLibrary(nextKey, nextProfile);
+            }
         };
         currentTask = task;
         task.setOnSucceeded(event -> {
-            if (currentTask != task) return;
+            if (currentTask != task)
+                return;
             currentTask = null;
             setBusy(false);
             library = task.getValue();
@@ -229,13 +243,17 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             filterGames();
             showLibrary(true);
             show(libraryStatus);
-            String time = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(library.fetchedAt());
+            String time =
+                    DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(library.fetchedAt());
             libraryStatus.setText(library.games().isEmpty()
-                    ? "Steam returned no games. This can reflect library visibility; it is not proof that the account owns none."
+                    ?
+                    "Steam returned no games. This can reflect library visibility; it is not proof that the account " +
+                            "owns none."
                     : "Updated at " + time);
         });
         task.setOnFailed(event -> {
-            if (currentTask != task) return;
+            if (currentTask != task)
+                return;
             currentTask = null;
             setBusy(false);
             hide(connectionStatus);
@@ -252,7 +270,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void filterGames() {
-        if (library == null) return;
+        if (library == null)
+            return;
         String query = search.getText().strip().toLowerCase(Locale.ROOT);
         var visible = library.games().stream()
                 .filter(game -> game.name().toLowerCase(Locale.ROOT).contains(query)
@@ -274,8 +293,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void disconnect() {
-        if (!editor.discardPendingIfNeeded()) return;
-        if (currentTask != null) currentTask.cancel(true);
+        if (!editor.discardPendingIfNeeded())
+            return;
+        if (currentTask != null)
+            currentTask.cancel(true);
         currentTask = null;
         sessionKey = null;
         sessionProfile = null;
@@ -317,12 +338,15 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
     private Image iconFor(Game game) {
         String url = game.iconUrl();
-        if (url == null) return null;
+        if (url == null)
+            return null;
         Image cached = icons.get(url);
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
         var image = new Image(url, 28, 28, true, true, true);
         icons.put(url, image);
-        if (icons.size() > 160) icons.remove(icons.keySet().iterator().next());
+        if (icons.size() > 160)
+            icons.remove(icons.keySet().iterator().next());
         return image;
     }
 
@@ -350,7 +374,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             setTooltip(new Tooltip());
         }
 
-        @Override protected void updateItem(Game game, boolean empty) {
+        @Override
+        protected void updateItem(Game game, boolean empty) {
             super.updateItem(game, empty);
             if (empty || game == null) {
                 image.setImage(null);
@@ -374,13 +399,24 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         return label;
     }
 
-    private static void hide(Node node) { node.setVisible(false); node.setManaged(false); }
-    private static void show(Node node) { node.setVisible(true); node.setManaged(true); }
+    private static void hide(Node node) {
+        node.setVisible(false);
+        node.setManaged(false);
+    }
 
-    public boolean canClose() { return editor.discardPendingIfNeeded(); }
+    private static void show(Node node) {
+        node.setVisible(true);
+        node.setManaged(true);
+    }
 
-    @Override public void close() {
-        if (currentTask != null) currentTask.cancel(true);
+    public boolean canClose() {
+        return editor.discardPendingIfNeeded();
+    }
+
+    @Override
+    public void close() {
+        if (currentTask != null)
+            currentTask.cancel(true);
         sessionKey = null;
         keyField.clear();
         icons.clear();
