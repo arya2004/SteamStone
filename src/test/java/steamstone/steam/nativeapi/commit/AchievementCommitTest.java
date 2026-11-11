@@ -15,17 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class AchievementCommitTest {
+public class AchievementCommitTest {
     private static final String ACCOUNT = "76561198000000000";
 
-    private Request request(Map<String, Boolean> expected, Map<String, Boolean> desired) {
+    private Request request(final Map<String, Boolean> expected, final Map<String, Boolean> desired) {
         return new Request(10, ACCOUNT, List.of("A", "B"), expected, desired);
     }
 
     @Test
-    void readsNeverSetOrStore() {
-        var steam = new FakeSteam();
-        var response = new AchievementCommit().execute(request(Map.of(), Map.of()), steam);
+    public void readsNeverSetOrStore() {
+        final var steam = new FakeSteam();
+        final var response = new AchievementCommit().execute(request(Map.of(), Map.of()), steam);
         assertEquals(Status.READ, response.status());
         assertEquals(0, steam.setters);
         assertEquals(0, steam.stores);
@@ -33,9 +33,9 @@ class AchievementCommitTest {
     }
 
     @Test
-    void locksAndUnlocksWithSingleConfirmedStoreAndReadback() {
-        var steam = new FakeSteam();
-        var response =
+    public void locksAndUnlocksWithSingleConfirmedStoreAndReadback() {
+        final var steam = new FakeSteam();
+        final var response =
                 new AchievementCommit().execute(request(Map.of("A", false, "B", true), Map.of("A", true, "B", false)),
                         steam);
         assertEquals(Status.CONFIRMED, response.status());
@@ -46,9 +46,9 @@ class AchievementCommitTest {
     }
 
     @Test
-    void concurrentChangeStopsEntireBatchBeforeAnySetter() {
-        var steam = new FakeSteam();
-        var response =
+    public void concurrentChangeStopsEntireBatchBeforeAnySetter() {
+        final var steam = new FakeSteam();
+        final var response =
                 new AchievementCommit().execute(request(Map.of("A", true, "B", true), Map.of("A", false, "B", false)),
                         steam);
         assertEquals(Status.CONFLICT, response.status());
@@ -57,19 +57,19 @@ class AchievementCommitTest {
     }
 
     @Test
-    void unreadableStateStopsBatchBeforeAnySetter() {
-        var steam = new FakeSteam();
+    public void unreadableStateStopsBatchBeforeAnySetter() {
+        final var steam = new FakeSteam();
         steam.states.put("A", AchievementState.UNKNOWN);
-        var response = new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam);
+        final var response = new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam);
         assertEquals(Status.REJECTED, response.status());
         assertEquals(0, steam.setters);
     }
 
     @Test
-    void rejectedSetterDoesNotDiscardOtherAcceptedChanges() {
-        var steam = new FakeSteam();
+    public void rejectedSetterDoesNotDiscardOtherAcceptedChanges() {
+        final var steam = new FakeSteam();
         steam.reject.add("B");
-        var response =
+        final var response =
                 new AchievementCommit().execute(request(Map.of("A", false, "B", true), Map.of("A", true, "B", false)),
                         steam);
         assertEquals(Status.PARTIAL, response.status());
@@ -79,19 +79,19 @@ class AchievementCommitTest {
     }
 
     @Test
-    void allRejectedDoesNotCallStore() {
-        var steam = new FakeSteam();
+    public void allRejectedDoesNotCallStore() {
+        final var steam = new FakeSteam();
         steam.reject.add("A");
-        var response = new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam);
+        final var response = new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam);
         assertEquals(Status.REJECTED, response.status());
         assertEquals(0, steam.stores);
     }
 
     @Test
-    void timeoutNeverConfirmsLocallyChangedStates() {
-        var steam = new FakeSteam();
+    public void timeoutNeverConfirmsLocallyChangedStates() {
+        final var steam = new FakeSteam();
         steam.timeout = true;
-        var failure = assertThrows(StoneException.class,
+        final var failure = assertThrows(StoneException.class,
                 () -> new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam));
         assertTrue(failure.getMessage().contains("may still sync"));
         assertInstanceOf(StoneException.class, failure.getCause());
@@ -100,23 +100,23 @@ class AchievementCommitTest {
     }
 
     @Test
-    void rejectedStorageNeverClaimsSuccess() {
-        var steam = new FakeSteam();
+    public void rejectedStorageNeverClaimsSuccess() {
+        final var steam = new FakeSteam();
         steam.storageAccepted = false;
         assertEquals(Status.UNKNOWN,
                 new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam).status());
     }
 
     @Test
-    void successfulCallbackStillRequiresMatchingReadback() {
-        var steam = new FakeSteam();
+    public void successfulCallbackStillRequiresMatchingReadback() {
+        final var steam = new FakeSteam();
         steam.ignoreSetters = true;
         assertEquals(Status.PARTIAL,
                 new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam).status());
     }
 
     @Test
-    void refusesEditsOutsideRequestedIdsOrWithoutBaseline() {
+    public void refusesEditsOutsideRequestedIdsOrWithoutBaseline() {
         assertThrows(StoneException.class, () -> request(Map.of("X", false), Map.of("X", true)));
         assertThrows(StoneException.class, () -> request(Map.of(), Map.of("A", true)));
         assertThrows(StoneException.class, () -> new Request(0, ACCOUNT, List.of("A"), Map.of(), Map.of()));

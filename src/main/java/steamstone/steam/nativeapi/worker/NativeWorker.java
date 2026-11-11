@@ -39,10 +39,14 @@ public final class NativeWorker {
         final var json = new ObjectMapper();
         try {
             final var request = json.readValue(Path.of(args[0]).toFile(), Request.class);
-            final var response = StoneFutures.await(CompletableFuture.completedFuture(request).thenApply(NativeWorker::run)
-                    .exceptionally((final var failure) -> new Response(request.appId(), request.steamId(), Status.UNKNOWN,
-                            "Could not confirm the Steam session result. Keep Steam running, sign in to the selected "
-                                    + "account, and reload before retrying; changes may still sync.", Map.of())));
+            final var response =
+                    StoneFutures.await(CompletableFuture.completedFuture(request).thenApply(NativeWorker::run)
+                            .exceptionally((final var failure) -> new Response(request.appId(), request.steamId(),
+                                    Status.UNKNOWN,
+                                    "Could not confirm the Steam session result. Keep Steam running, sign in to the " +
+                                            "selected "
+                                            + "account, and reload before retrying; changes may still sync.",
+                                    Map.of())));
             json.writeValue(Path.of(args[1]).toFile(), response);
         } catch (final IOException exception) {
             throw new StoneException("Could not read or write the Steam worker protocol files.", exception);

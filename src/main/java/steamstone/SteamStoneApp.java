@@ -10,15 +10,15 @@ public final class SteamStoneApp extends Application {
     private LibraryView libraryView;
 
     @Override
-    public void start(Stage stage) {
+    public void start(final Stage stage) {
         libraryView = new LibraryView(new SteamWebApi());
-        Scene scene = new Scene(libraryView, 1180, 800);
+        final var scene = new Scene(libraryView, 1180, 800);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         stage.setTitle("SteamStone");
         stage.setMinWidth(940);
         stage.setMinHeight(700);
         stage.setScene(scene);
-        stage.setOnCloseRequest(event -> {
+        stage.setOnCloseRequest((final var event) -> {
             if (!libraryView.canClose())
                 event.consume();
         });

@@ -1,11 +1,11 @@
 package steamstone.steam.nativeapi;
 
-import org.junit.jupiter.api.Test;
-import steamstone.exception.StoneException;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.junit.jupiter.api.Test;
+import steamstone.exception.StoneException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;

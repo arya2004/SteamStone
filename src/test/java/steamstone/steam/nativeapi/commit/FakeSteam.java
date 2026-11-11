@@ -10,20 +10,20 @@ import steamstone.exception.StoneException;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.protocol.Entry;
 
-final class FakeSteam implements AchievementStats {
-    Map<String, AchievementState> states =
+public final class FakeSteam implements AchievementStats {
+    public final Map<String, AchievementState> states =
             new HashMap<>(Map.of("A", AchievementState.LOCKED, "B", AchievementState.UNLOCKED));
-    Set<String> reject = new HashSet<>();
-    boolean storageAccepted = true, timeout, ignoreSetters;
-    int setters, stores;
+    public final Set<String> reject = new HashSet<>();
+    public boolean storageAccepted = true, timeout, ignoreSetters;
+    public int setters, stores;
 
     @Override
-    public Entry read(String id) {
+    public Entry read(final String id) {
         return new Entry(states.get(id), "Description", 0);
     }
 
     @Override
-    public boolean set(String id, boolean unlocked) {
+    public boolean set(final String id, final boolean unlocked) {
         setters++;
         if (reject.contains(id))
             return false;

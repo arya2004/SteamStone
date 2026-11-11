@@ -15,7 +15,8 @@ public final class NativeAchievementStats implements AchievementStats {
     private final SteamAttributes attributes;
     private final StorageCallback callback;
 
-    public NativeAchievementStats(final SteamUserStats stats, final SteamAttributes attributes, final StorageCallback callback) {
+    public NativeAchievementStats(final SteamUserStats stats, final SteamAttributes attributes,
+                                  final StorageCallback callback) {
         this.stats = stats;
         this.attributes = attributes;
         this.callback = callback;

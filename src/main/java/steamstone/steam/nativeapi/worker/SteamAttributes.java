@@ -36,7 +36,8 @@ public final class SteamAttributes implements AutoCloseable {
             attribute = linker.downcallHandle(
                     symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
                     FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
-            read = linker.downcallHandle(symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
+            read = linker.downcallHandle(
+                    symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         } catch (final Throwable exception) {
             try (arena) {

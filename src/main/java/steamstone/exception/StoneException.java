@@ -1,6 +1,8 @@
 package steamstone.exception;
 
-/** A contextual application failure that preserves its original cause. */
+/**
+ * A contextual application failure that preserves its original cause.
+ */
 public final class StoneException extends RuntimeException {
     public StoneException(final String message) {
         super(message);

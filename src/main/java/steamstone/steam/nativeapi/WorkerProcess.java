@@ -20,7 +20,8 @@ public final class WorkerProcess implements AutoCloseable {
         try {
             return process.waitFor(seconds, TimeUnit.SECONDS);
         } catch (final InterruptedException exception) {
-            throw new StoneException("Waiting for the Steam worker was interrupted. Changes may still sync.", exception);
+            throw new StoneException("Waiting for the Steam worker was interrupted. Changes may still sync.",
+                    exception);
         }
     }
 

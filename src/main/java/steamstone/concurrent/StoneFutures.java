@@ -17,7 +17,8 @@ public final class StoneFutures {
             return future.join();
         } catch (final CompletionException exception) {
             final var cause = exception.getCause();
-            throw new StoneException(cause instanceof StoneException stone ? stone.getMessage() : "The operation failed.",
+            throw new StoneException(
+                    cause instanceof StoneException stone ? stone.getMessage() : "The operation failed.",
                     cause == null ? exception : cause);
         }
     }

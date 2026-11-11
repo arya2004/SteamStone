@@ -26,6 +26,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import steamstone.concurrent.StoneFutures;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
 import steamstone.model.achievement.Achievement;
@@ -68,20 +69,20 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private Task<Response> commitTask;
     private String dataNotice = "";
 
-    public AchievementEditor(SteamWebApi api) {
+    public AchievementEditor(final SteamWebApi api) {
         this.api = api;
         getStyleClass().add("editor-page");
         title.setId("editor-game-name");
         title.setMaxWidth(Double.MAX_VALUE);
         title.setMinWidth(0);
         title.setTextOverrun(OverrunStyle.ELLIPSIS);
-        var heading = new VBox(2, title, subtitle);
+        final var heading = new VBox(2, title, subtitle);
         heading.setMinWidth(0);
         HBox.setHgrow(heading, Priority.ALWAYS);
         commit.getStyleClass().setAll("primary-button");
         reload.setTooltip(new Tooltip("Reload achievements"));
         reset.setTooltip(new Tooltip("Reset local changes"));
-        var header = new HBox(7, heading, reload, unlock, lock, reset, commit);
+        final var header = new HBox(7, heading, reload, unlock, lock, reset, commit);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("editor-header");
         notice.setWrapText(true);
@@ -94,33 +95,33 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         list.getStyleClass().add("achievement-list");
         list.setFixedCellSize(56);
         list.setPlaceholder(empty);
-        list.setCellFactory(view -> new AchievementCell(this));
-        var body = new VBox(6, notice, list);
+        list.setCellFactory((final var view) -> new AchievementCell(this));
+        final var body = new VBox(6, notice, list);
         body.getStyleClass().add("achievement-body");
         VBox.setVgrow(list, Priority.ALWAYS);
         VBox.setVgrow(body, Priority.ALWAYS);
         getChildren().addAll(header, new Separator(), body);
-        unlock.setOnAction(e -> {
+        unlock.setOnAction((final var e) -> {
             preview.setAll(true);
             changed();
         });
-        lock.setOnAction(e -> {
+        lock.setOnAction((final var e) -> {
             preview.setAll(false);
             changed();
         });
-        reset.setOnAction(e -> {
+        reset.setOnAction((final var e) -> {
             preview.reset();
             changed();
         });
-        commit.setOnAction(e -> commit());
-        reload.setOnAction(e -> {
+        commit.setOnAction((final var e) -> commit());
+        reload.setOnAction((final var e) -> {
             if (discardPendingIfNeeded())
                 load();
         });
         updateControls();
     }
 
-    public void open(Game next, String apiKey, String account) {
+    public void open(final Game next, final String apiKey, final String account) {
         if (next != null && game != null && next.appId() == game.appId()
                 && Objects.equals(key, apiKey) && Objects.equals(steamId, account))
             return;
@@ -144,9 +145,10 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         if (game == null)
             return;
         empty.setText("Loading achievements from Steam…");
-        final long appId = game.appId();
-        final String requestKey = key, account = steamId;
-        var next = new StoneTask<>(() -> {
+        final var appId = game.appId();
+        final var requestKey = key;
+        final var account = steamId;
+        final var next = new StoneTask<>(() -> {
             final var web = api.loadAchievements(requestKey, account, appId);
             if (Thread.currentThread().isInterrupted()) {
                 throw new StoneException("Achievement loading was cancelled.");
@@ -154,10 +156,10 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             if (web.achievements().isEmpty()) {
                 return new LoadedAchievements(web, false);
             }
-            return CompletableFuture.completedFuture(web)
-                    .thenApply(data -> nativeSteam.execute(new Request(appId, account,
+            return StoneFutures.await(CompletableFuture.completedFuture(web)
+                    .thenApply((final var data) -> nativeSteam.execute(new Request(appId, account,
                             data.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of())))
-                    .handle((response, failure) -> {
+                    .handle((final var response, final var failure) -> {
                         if (Thread.currentThread().isInterrupted()) {
                             throw new StoneException("Achievement loading was cancelled.", failure);
                         }
@@ -169,17 +171,18 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                         if (response.status() == Status.READ) {
                             return new LoadedAchievements(merge(web.achievements(), response, ""), true);
                         }
-                        return new LoadedAchievements(new AchievementList(web.achievements(), response.message()), false);
-                    }).join();
+                        return new LoadedAchievements(new AchievementList(web.achievements(), response.message()),
+                                false);
+                    }));
         });
         task = next;
         updateControls();
-        next.setOnSucceeded(e -> {
+        next.setOnSucceeded((final var e) -> {
             if (task != next)
                 return;
             task = null;
             nativeReady = next.getValue().nativeReady();
-            var result = next.getValue().data();
+            final var result = next.getValue().data();
             preview = new AchievementPreview(result.achievements());
             dataNotice = result.notice();
             list.getItems().setAll(result.achievements());
@@ -187,7 +190,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             empty.setText("Steam returned no achievement definitions for this game.");
             changed();
         });
-        next.setOnFailed(e -> {
+        next.setOnFailed((final var e) -> {
             if (task != next)
                 return;
             task = null;
@@ -199,11 +202,11 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.submit(next);
     }
 
-    AchievementPreview preview() {
+    public AchievementPreview preview() {
         return preview;
     }
 
-    boolean nativeReady() {
+    public boolean nativeReady() {
         return nativeReady;
     }
 
@@ -216,15 +219,15 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         changed();
     }
 
-    void changed() {
+    public void changed() {
         notice.setText(dataNotice);
         list.refresh();
         updateControls();
     }
 
     private void updateControls() {
-        boolean editable = nativeReady && task == null && !committing.get() && preview.achievements().stream()
-                .anyMatch(a -> a.state() != AchievementState.UNKNOWN);
+        final var editable = nativeReady && task == null && !committing.get() && preview.achievements().stream()
+                .anyMatch((final var a) -> a.state() != AchievementState.UNKNOWN);
         unlock.setDisable(!editable);
         lock.setDisable(!editable);
         reset.setDisable(!editable || preview.changeCount() == 0);
@@ -245,46 +248,47 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             return false;
         if (preview.changeCount() == 0)
             return true;
-        var alert = new Alert(Alert.AlertType.CONFIRMATION,
+        final var alert = new Alert(Alert.AlertType.CONFIRMATION,
                 "Discard " + preview.changeCount() + " pending achievement change(s)?",
                 ButtonType.CANCEL, new ButtonType("Discard", ButtonBar.ButtonData.OK_DONE));
         alert.setHeaderText("Unsaved changes");
         if (getScene() != null)
             alert.initOwner(getScene().getWindow());
-        return alert.showAndWait().map(button -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE).orElse(false);
+        return alert.showAndWait().map((final var button) -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE)
+                .orElse(false);
     }
 
-    public boolean isCurrentGame(Game candidate) {
+    public boolean isCurrentGame(final Game candidate) {
         return game != null && candidate.appId() == game.appId();
     }
 
     private void commit() {
         if (!nativeReady || committing.get() || preview.changeCount() == 0)
             return;
-        var desired = preview.changes();
-        var expected = new LinkedHashMap<String, Boolean>();
-        for (var achievement : preview.achievements()) {
+        final var desired = preview.changes();
+        final var expected = new LinkedHashMap<String, Boolean>();
+        for (final var achievement : preview.achievements()) {
             if (desired.containsKey(achievement.id()))
                 expected.put(achievement.id(), achievement.state() == AchievementState.UNLOCKED);
         }
-        var request = new Request(game.appId(), steamId,
+        final var request = new Request(game.appId(), steamId,
                 preview.achievements().stream().map(Achievement::id).toList(), expected, desired);
         committing.set(true);
         dataNotice = "Saving changes to Steam…";
         changed();
-        var next = new StoneTask<>(() -> nativeSteam.execute(request));
+        final var next = new StoneTask<>(() -> nativeSteam.execute(request));
         commitTask = next;
-        next.setOnSucceeded(e -> {
+        next.setOnSucceeded((final var e) -> {
             commitTask = null;
             committing.set(false);
-            var response = next.getValue();
+            final var response = next.getValue();
             if (response.status() == Status.UNKNOWN)
                 nativeReady = false;
             else if (!response.achievements().isEmpty()) {
-                var snapshot = merge(preview.achievements(), response, response.message());
+                final var snapshot = merge(preview.achievements(), response, response.message());
                 preview = new AchievementPreview(snapshot.achievements());
                 // Successful readbacks disappear from pending; rejected/unmatched intentions remain.
-                for (var achievement : preview.achievements()) {
+                for (final var achievement : preview.achievements()) {
                     if (desired.containsKey(achievement.id()))
                         preview.setUnlocked(achievement, desired.get(achievement.id()));
                 }
@@ -293,7 +297,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             dataNotice = response.message();
             changed();
         });
-        next.setOnFailed(e -> {
+        next.setOnFailed((final var e) -> {
             commitTask = null;
             committing.set(false);
             nativeReady = false;
@@ -303,38 +307,40 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.submit(next);
     }
 
-    private static AchievementList merge(List<Achievement> source, Response response, String notice) {
-        return new AchievementList(source.stream().map(achievement -> {
-            var entry = response.achievements().get(achievement.id());
+    private static AchievementList merge(final List<Achievement> source, final Response response, final String notice) {
+        return new AchievementList(source.stream().map((final var achievement) -> {
+            final var entry = response.achievements().get(achievement.id());
             if (entry == null)
                 return new Achievement(achievement.id(), achievement.name(), achievement.description(),
                         AchievementState.UNKNOWN, 0, achievement.icon(), achievement.lockedIcon());
-            String description = entry.description().isBlank() ? achievement.description() : entry.description();
+            final var description = entry.description().isBlank() ? achievement.description() : entry.description();
             return new Achievement(achievement.id(), achievement.name(), description, entry.state(), entry.unlockTime(),
                     achievement.icon(), achievement.lockedIcon());
         }).toList(), notice);
     }
 
-    Image icon(Achievement achievement) {
-        String url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
+    public Image icon(final Achievement achievement) {
+        return StoneFutures.await(CompletableFuture.completedFuture(achievement).thenApply(this::loadIcon)
+                .exceptionally((final var failure) -> null));
+    }
+
+    private Image loadIcon(final Achievement achievement) {
+        final var url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
         if (url.isBlank())
             return null;
         try {
-            URI uri = URI.create(url);
-            String host = uri.getHost();
+            final var uri = URI.create(url);
+            final var host = uri.getHost();
             if (!"https".equalsIgnoreCase(uri.getScheme()) || host == null || uri.getUserInfo() != null
                     || !(host.endsWith(".steamstatic.com") || host.endsWith(".steamcommunity.com")
                     || host.equals("steamcdn-a.akamaihd.net")))
                 return null;
-        } catch (IllegalArgumentException ex) {
-            return null;
+        } catch (final IllegalArgumentException ex) {
+            throw new StoneException("Steam supplied an invalid achievement image URL.", ex);
         }
-        Image image = icons.get(url);
-        if (image == null) {
-            image = new Image(url, 32, 32, true, true, true);
-            icons.put(url, image);
-            if (icons.size() > 100)
-                icons.remove(icons.keySet().iterator().next());
+        final var image = icons.computeIfAbsent(url, (final var value) -> new Image(value, 32, 32, true, true, true));
+        if (icons.size() > 100) {
+            icons.remove(icons.keySet().iterator().next());
         }
         return image;
     }
@@ -357,14 +363,14 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         icons.clear();
     }
 
-    static Label label(String text, String style) {
-        var label = new Label(text);
+    public static Label label(final String text, final String style) {
+        final var label = new Label(text);
         label.getStyleClass().add(style);
         return label;
     }
 
-    private static Button button(String text, String id) {
-        var button = new Button(text);
+    private static Button button(final String text, final String id) {
+        final var button = new Button(text);
         button.setId(id);
         button.getStyleClass().add("secondary-button");
         return button;

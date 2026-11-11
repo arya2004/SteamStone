@@ -1,21 +1,25 @@
 package steamstone.steam;
 
-import steamstone.exception.StoneException;
-
 import com.sun.net.httpserver.HttpServer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import steamstone.exception.StoneException;
 
-class SteamWebApiTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class SteamWebApiTest {
     // Deliberately synthetic credential, never read from the developer's key file.
     private static final String KEY = "0123456789abcdef0123456789abcdef";
     private static final String ID = "76561198000000000";
@@ -35,46 +39,56 @@ class SteamWebApiTest {
     private volatile String libraryQuery;
 
     @BeforeEach
-    void start() throws Exception {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/", exchange -> {
-            requests.incrementAndGet();
-            credentialInQuery |= exchange.getRequestURI().toString().contains(KEY);
-            suppliedHeader = exchange.getRequestHeaders().getFirst("x-webapi-key");
-            String path = exchange.getRequestURI().getPath();
-            String body;
-            int status;
-            if (path.contains("GetOwnedGames")) {
-                libraryQuery = exchange.getRequestURI().getQuery();
-                body = ownedBody;
-                status = ownedStatus;
-            } else if (path.contains("ResolveVanityURL")) {
-                body = "{\"response\":{\"success\":1,\"steamid\":\"" + ID + "\"}}";
-                status = 200;
-            } else {
-                body = "{\"response\":{\"players\":[{\"personaname\":\"Fixture User\"}]}}";
-                status = summaryStatus;
-            }
-            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(status, bytes.length);
-            try (var stream = exchange.getResponseBody()) {
-                stream.write(bytes);
-            }
-        });
-        server.start();
-        api = new SteamWebApi(HttpClient.newHttpClient(),
-                URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"));
+    public void start() {
+        try {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            server.createContext("/", (final var exchange) -> {
+                try {
+                    requests.incrementAndGet();
+                    credentialInQuery |= exchange.getRequestURI().toString().contains(KEY);
+                    suppliedHeader = exchange.getRequestHeaders().getFirst("x-webapi-key");
+                    final var path = exchange.getRequestURI().getPath();
+                    final String body;
+                    final int status;
+                    if (path.contains("GetOwnedGames")) {
+                        libraryQuery = exchange.getRequestURI().getQuery();
+                        body = ownedBody;
+                        status = ownedStatus;
+                    } else if (path.contains("ResolveVanityURL")) {
+                        body = "{\"response\":{\"success\":1,\"steamid\":\"" + ID + "\"}}";
+                        status = 200;
+                    } else {
+                        body = "{\"response\":{\"players\":[{\"personaname\":\"Fixture User\"}]}}";
+                        status = summaryStatus;
+                    }
+                    final var bytes = body.getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(status, bytes.length);
+                    try (final var stream = exchange.getResponseBody()) {
+                        stream.write(bytes);
+                    }
+
+                } catch (final IOException exception) {
+                    throw new StoneException("Could not serve the fixture HTTP response.", exception);
+                }
+            });
+            server.start();
+            api = new SteamWebApi(HttpClient.newHttpClient(),
+                    URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"));
+
+        } catch (final IOException exception) {
+            throw new StoneException("Could not start the fixture HTTP server.", exception);
+        }
     }
 
     @AfterEach
-    void stop() {
+    public void stop() {
         server.stop(0);
     }
 
     @Test
-    void loadsTheAccountLibraryWithoutACandidateCatalog() throws Exception {
-        var result = api.loadLibrary(KEY, ID);
+    public void loadsTheAccountLibraryWithoutACandidateCatalog() {
+        final var result = api.loadLibrary(KEY, ID);
         assertEquals(2, result.games().size());
         assertEquals("Alpha", result.games().getFirst().name());
         assertEquals(120, result.playtimeMinutes());
@@ -89,40 +103,40 @@ class SteamWebApiTest {
     }
 
     @Test
-    void resolvesVanityProfilesThroughTheDocumentedApi() throws Exception {
-        var result = api.loadLibrary(KEY, "https://steamcommunity.com/id/fixture-user");
+    public void resolvesVanityProfilesThroughTheDocumentedApi() {
+        final var result = api.loadLibrary(KEY, "https://steamcommunity.com/id/fixture-user");
         assertEquals(ID, result.steamId());
         assertEquals(3, requests.get());
     }
 
     @Test
-    void rejectsInvalidCredentialsBeforeMakingRequests() {
+    public void rejectsInvalidCredentialsBeforeMakingRequests() {
         assertThrows(StoneException.class, () -> api.loadLibrary("bad-key", ID));
         assertEquals(0, requests.get());
     }
 
     @Test
-    void doesNotTreatAPrivateOrUnavailableLibraryAsEmpty() {
+    public void doesNotTreatAPrivateOrUnavailableLibraryAsEmpty() {
         ownedBody = "{\"response\":{}}";
-        var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+        final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         assertTrue(error.getMessage().contains("did not expose"));
     }
 
     @Test
-    void acceptsAnExplicitZeroCountWithoutInventingGames() throws Exception {
+    public void acceptsAnExplicitZeroCountWithoutInventingGames() {
         ownedBody = "{\"response\":{\"game_count\":0}}";
         assertTrue(api.loadLibrary(KEY, ID).games().isEmpty());
     }
 
     @Test
-    void rejectsIncompleteSnapshots() {
+    public void rejectsIncompleteSnapshots() {
         ownedBody = "{\"response\":{\"game_count\":3,\"games\":[{\"appid\":10,\"name\":\"One\"}]}}";
-        var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+        final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         assertTrue(error.getMessage().contains("partial"));
     }
 
     @Test
-    void rejectsMalformedAndInvalidGameData() {
+    public void rejectsMalformedAndInvalidGameData() {
         ownedBody = "not-json";
         assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
         ownedBody = "{\"response\":{\"game_count\":1,\"games\":[{\"appid\":-1}]}}";
@@ -130,20 +144,20 @@ class SteamWebApiTest {
     }
 
     @Test
-    void returnsUsefulCredentialFreeHttpErrors() {
-        for (int status : new int[]{403, 429, 503, 302}) {
+    public void returnsUsefulCredentialFreeHttpErrors() {
+        for (final var status : new int[]{403, 429, 503, 302}) {
             ownedStatus = status;
             ownedBody = "REMOTE BODY THAT MUST NEVER BE SHOWN " + KEY;
-            var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+            final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
             assertFalse(error.getMessage().contains(KEY));
             assertFalse(error.getMessage().contains("REMOTE BODY"));
         }
     }
 
     @Test
-    void optionalProfileFailureDoesNotDiscardTheLibrary() throws Exception {
+    public void optionalProfileFailureDoesNotDiscardTheLibrary() {
         summaryStatus = 503;
-        var result = api.loadLibrary(KEY, ID);
+        final var result = api.loadLibrary(KEY, ID);
         assertEquals(2, result.games().size());
         assertEquals(ID, result.playerName());
     }

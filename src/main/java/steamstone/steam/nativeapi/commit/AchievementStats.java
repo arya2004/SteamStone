@@ -3,9 +3,9 @@ package steamstone.steam.nativeapi.commit;
 import steamstone.steam.nativeapi.protocol.Entry;
 
 public interface AchievementStats {
-    Entry read(String id);
+    public Entry read(final String id);
 
-    boolean set(String id, boolean unlocked);
+    public boolean set(final String id, final boolean unlocked);
 
-    boolean storeAndWait();
+    public boolean storeAndWait();
 }

@@ -66,7 +66,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private String sessionKey;
     private String sessionProfile;
 
-    public LibraryView(SteamWebApi api) {
+    public LibraryView(final SteamWebApi api) {
         this.api = api;
         editor = new AchievementEditor(api);
         getStyleClass().add("app-root");
@@ -77,7 +77,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         screens.getChildren().addAll(connectionScreen, libraryScreen);
         showLibrary(false);
 
-        var workspace = new VBox(0, screens);
+        final var workspace = new VBox(0, screens);
         VBox.setVgrow(screens, Priority.ALWAYS);
         setCenter(workspace);
 
@@ -86,34 +86,35 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         connectButton.setId("load-library");
         gameList.setId("game-list");
         gameCount.setId("game-count");
-        connectButton.setOnAction(event -> connect());
-        profileField.setOnAction(event -> connect());
-        keyField.setOnAction(event -> profileField.requestFocus());
-        refreshButton.setOnAction(event -> load(sessionKey, sessionProfile));
-        disconnectButton.setOnAction(event -> disconnect());
-        search.textProperty().addListener((obs, before, after) -> filterGames());
-        gameList.getSelectionModel().selectedItemProperty().addListener((obs, before, game) -> {
-            if (game != null) {
-                if (!editor.isCurrentGame(game) && !editor.discardPendingIfNeeded()) {
-                    gameList.getSelectionModel().select(before);
-                    return;
-                }
-                selectGame(game);
-            }
-        });
+        connectButton.setOnAction((final var event) -> connect());
+        profileField.setOnAction((final var event) -> connect());
+        keyField.setOnAction((final var event) -> profileField.requestFocus());
+        refreshButton.setOnAction((final var event) -> load(sessionKey, sessionProfile));
+        disconnectButton.setOnAction((final var event) -> disconnect());
+        search.textProperty().addListener((final var obs, final var before, final var after) -> filterGames());
+        gameList.getSelectionModel().selectedItemProperty()
+                .addListener((final var obs, final var before, final var game) -> {
+                    if (game != null) {
+                        if (!editor.isCurrentGame(game) && !editor.discardPendingIfNeeded()) {
+                            gameList.getSelectionModel().select(before);
+                            return;
+                        }
+                        selectGame(game);
+                    }
+                });
     }
 
     private Node sidebar() {
-        var stone = new Polygon(15, 0, 30, 10, 26, 30, 10, 34, 0, 20, 3, 6);
+        final var stone = new Polygon(15, 0, 30, 10, 26, 30, 10, 34, 0, 20, 3, 6);
         stone.getStyleClass().add("stone-logo");
-        var brand = new HBox(12, stone, new VBox(4,
+        final var brand = new HBox(12, stone, new VBox(4,
                 label("STEAMSTONE", "brand-name"), label("Your achievement workspace.", "brand-caption")));
         brand.setAlignment(Pos.CENTER_LEFT);
 
         gameCount.getStyleClass().add("game-count-badge");
-        var grow = new Region();
+        final var grow = new Region();
         HBox.setHgrow(grow, Priority.ALWAYS);
-        var heading = new HBox(10, label("ALL GAMES", "eyebrow"), grow, gameCount);
+        final var heading = new HBox(10, label("ALL GAMES", "eyebrow"), grow, gameCount);
         heading.setAlignment(Pos.CENTER_LEFT);
         VBox.setMargin(heading, new Insets(30, 0, 0, 0));
         search.setPromptText("Search games…");
@@ -123,7 +124,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
         gameList.getStyleClass().add("sidebar-game-list");
         gameList.setFixedCellSize(52);
-        gameList.setCellFactory(view -> new GameCell(this));
+        gameList.setCellFactory((final var view) -> new GameCell(this));
         sidebarEmptyMessage.getStyleClass().add("sidebar-empty");
         sidebarEmptyMessage.setWrapText(true);
         sidebarEmptyMessage.setMaxWidth(230);
@@ -140,13 +141,14 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         refreshButton.setDisable(true);
         disconnectButton.getStyleClass().add("text-button");
         disconnectButton.setDisable(true);
-        var actions = new HBox(8, refreshButton, disconnectButton);
+        final var actions = new HBox(8, refreshButton, disconnectButton);
         libraryStatus.getStyleClass().add("library-status");
         libraryStatus.setWrapText(true);
         libraryStatus.setId("library-status");
         hide(libraryStatus);
-        var bottom = new VBox(10, new Separator(), label("ACCOUNT", "eyebrow"), profileName, actions, libraryStatus);
-        var box = new VBox(14, brand, heading, search, gameList, bottom);
+        final var bottom =
+                new VBox(10, new Separator(), label("ACCOUNT", "eyebrow"), profileName, actions, libraryStatus);
+        final var box = new VBox(14, brand, heading, search, gameList, bottom);
         box.setPrefWidth(300);
         box.setMinWidth(300);
         box.setMaxWidth(300);
@@ -155,30 +157,31 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private VBox connectionScreen() {
-        var eyebrow = label("YOUR GAMES. YOUR SPACE.", "accent-eyebrow");
-        var title = label("Your Steam library,\nin one place.", "welcome-title");
-        var subtitle =
+        final var eyebrow = label("YOUR GAMES. YOUR SPACE.", "accent-eyebrow");
+        final var title = label("Your Steam library,\nin one place.", "welcome-title");
+        final var subtitle =
                 label("Bring your collection into SteamStone. Connect once, then browse\nevery game Steam makes " +
                                 "available to your account.",
                         "welcome-subtitle");
         subtitle.setWrapText(true);
-        var intro = new VBox(14, eyebrow, title, subtitle);
+        final var intro = new VBox(14, eyebrow, title, subtitle);
 
-        var formTitle = label("Connect your library", "card-title");
-        var formSubtitle = label("Use your personal Steam Web API key and profile.", "muted");
+        final var formTitle = label("Connect your library", "card-title");
+        final var formSubtitle = label("Use your personal Steam Web API key and profile.", "muted");
         keyField.setPromptText("Paste your 32-character API key");
         keyField.setAccessibleText("Steam Web API key");
         keyField.setPrefHeight(44);
         profileField.setPromptText("steamcommunity.com/id/your-name or SteamID64");
         profileField.setAccessibleText("Steam profile URL or SteamID64");
         profileField.setPrefHeight(44);
-        var keyLabel = label("STEAM WEB API KEY", "field-label");
+        final var keyLabel = label("STEAM WEB API KEY", "field-label");
         keyLabel.setLabelFor(keyField);
-        var profileLabel = label("STEAM PROFILE", "field-label");
+        final var profileLabel = label("STEAM PROFILE", "field-label");
         profileLabel.setLabelFor(profileField);
-        var keyInput = new VBox(8, keyLabel, keyField);
-        var profileInput = new VBox(8, profileLabel, profileField);
-        var inputHint = label("The key authorizes access; your profile tells us which library to load.", "field-hint");
+        final var keyInput = new VBox(8, keyLabel, keyField);
+        final var profileInput = new VBox(8, profileLabel, profileField);
+        final var inputHint =
+                label("The key authorizes access; your profile tells us which library to load.", "field-hint");
         inputHint.setWrapText(true);
         connectButton.getStyleClass().add("primary-button");
         connectButton.setMaxWidth(Double.MAX_VALUE);
@@ -188,17 +191,18 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         connectionError.setWrapText(true);
         hide(connectionError);
         hide(connectionStatus);
-        var card = new VBox(14, new VBox(5, formTitle, formSubtitle), keyInput, profileInput,
+        final var card = new VBox(14, new VBox(5, formTitle, formSubtitle), keyInput, profileInput,
                 inputHint, connectButton, connectionStatus, connectionError);
         card.getStyleClass().add("connection-card");
         VBox.setMargin(keyInput, new Insets(7, 0, 0, 0));
-        var privacy = label("◇  Session only. Your key stays in memory and is sent only to Steam.", "privacy-note");
+        final var privacy =
+                label("◇  Session only. Your key stays in memory and is sent only to Steam.", "privacy-note");
         privacy.setWrapText(true);
-        var footer = label("No game installs needed  ·  Read-only library access", "connect-footer");
-        var body = new VBox(22, intro, card, privacy, footer);
+        final var footer = label("No game installs needed  ·  Read-only library access", "connect-footer");
+        final var body = new VBox(22, intro, card, privacy, footer);
         body.setMaxWidth(630);
         body.setAlignment(Pos.TOP_LEFT);
-        var page = new VBox(body);
+        final var page = new VBox(body);
         page.setAlignment(Pos.TOP_CENTER);
         page.getStyleClass().add("connection-page");
         return page;
@@ -208,7 +212,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         return editor;
     }
 
-    private void selectGame(Game game) {
+    private void selectGame(final Game game) {
         selectedGame = game;
         editor.open(game, sessionKey, library == null ? null : library.steamId());
     }
@@ -219,11 +223,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         load(keyField.getText(), profileField.getText());
     }
 
-    private void load(String key, String profile) {
+    private void load(final String key, final String profile) {
         if (currentTask != null)
             return;
-        String nextKey = key == null ? "" : key.strip();
-        String nextProfile = profile == null ? "" : profile.strip();
+        final var nextKey = key == null ? "" : key.strip();
+        final var nextProfile = profile == null ? "" : profile.strip();
         hide(connectionError);
         connectionStatus.setText("Connecting to Steam and loading your library…");
         show(connectionStatus);
@@ -231,9 +235,9 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         if (library != null)
             libraryStatus.setText("Refreshing from Steam… Your current list is still visible.");
 
-        var task = new StoneTask<>(() -> api.loadLibrary(nextKey, nextProfile));
+        final var task = new StoneTask<>(() -> api.loadLibrary(nextKey, nextProfile));
         currentTask = task;
-        task.setOnSucceeded(event -> {
+        task.setOnSucceeded((final var event) -> {
             if (currentTask != task)
                 return;
             currentTask = null;
@@ -250,7 +254,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             filterGames();
             showLibrary(true);
             show(libraryStatus);
-            String time =
+            final var time =
                     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(library.fetchedAt());
             libraryStatus.setText(library.games().isEmpty()
                     ?
@@ -258,13 +262,13 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                             "owns none."
                     : "Updated at " + time);
         });
-        task.setOnFailed(event -> {
+        task.setOnFailed((final var event) -> {
             if (currentTask != task)
                 return;
             currentTask = null;
             setBusy(false);
             hide(connectionStatus);
-            String message = task.getException() instanceof StoneException ex ? ex.getMessage()
+            final var message = task.getException() instanceof StoneException ex ? ex.getMessage()
                     : "The library couldn't be loaded. Please try again.";
             if (library == null) {
                 connectionError.setText(message);
@@ -279,17 +283,18 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void filterGames() {
         if (library == null)
             return;
-        String query = search.getText().strip().toLowerCase(Locale.ROOT);
-        var visible = library.games().stream()
-                .filter(game -> game.name().toLowerCase(Locale.ROOT).contains(query)
+        final var query = search.getText().strip().toLowerCase(Locale.ROOT);
+        final var visible = library.games().stream()
+                .filter((final var game) -> game.name().toLowerCase(Locale.ROOT).contains(query)
                         || Long.toString(game.appId()).contains(query))
                 .sorted(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId))
                 .toList();
         gameList.getSelectionModel().clearSelection();
         gameList.getItems().setAll(visible);
         if (selectedGame != null) {
-            long id = selectedGame.appId();
-            selectGame(library.games().stream().filter(game -> game.appId() == id).findFirst().orElse(null));
+            final var id = selectedGame.appId();
+            selectGame(
+                    library.games().stream().filter((final var game) -> game.appId() == id).findFirst().orElse(null));
         }
         if (selectedGame != null && visible.contains(selectedGame)) {
             gameList.getSelectionModel().select(selectedGame);
@@ -328,7 +333,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         keyField.requestFocus();
     }
 
-    private void setBusy(boolean value) {
+    private void setBusy(final boolean value) {
         connectButton.setDisable(value);
         connectButton.setText(value ? "Loading your library…" : "Load my library  →");
         refreshButton.setDisable(value || library == null);
@@ -336,39 +341,39 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         profileField.setDisable(value);
     }
 
-    private void showLibrary(boolean value) {
+    private void showLibrary(final boolean value) {
         connectionScreen.setVisible(!value);
         connectionScreen.setManaged(!value);
         libraryScreen.setVisible(value);
         libraryScreen.setManaged(value);
     }
 
-    Image iconFor(Game game) {
-        String url = game.iconUrl();
+    public Image iconFor(final Game game) {
+        final var url = game.iconUrl();
         if (url == null)
             return null;
-        Image cached = icons.get(url);
+        final var cached = icons.get(url);
         if (cached != null)
             return cached;
-        var image = new Image(url, 28, 28, true, true, true);
+        final var image = new Image(url, 28, 28, true, true, true);
         icons.put(url, image);
         if (icons.size() > 160)
             icons.remove(icons.keySet().iterator().next());
         return image;
     }
 
-    static Label label(String text, String styleClass) {
-        var label = new Label(text);
+    public static Label label(final String text, final String styleClass) {
+        final var label = new Label(text);
         label.getStyleClass().add(styleClass);
         return label;
     }
 
-    private static void hide(Node node) {
+    private static void hide(final Node node) {
         node.setVisible(false);
         node.setManaged(false);
     }
 
-    private static void show(Node node) {
+    private static void show(final Node node) {
         node.setVisible(true);
         node.setManaged(true);
     }

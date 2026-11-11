@@ -2,6 +2,7 @@ package steamstone.steam;
 
 import com.sun.net.httpserver.HttpServer;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class AchievementApiTest {
+public class AchievementApiTest {
     private static final String KEY = "0123456789abcdef0123456789abcdef";
     private static final String ID = "76561198000000000";
     private HttpServer server;
@@ -39,34 +40,44 @@ class AchievementApiTest {
     private volatile boolean credentialsCorrect = true;
 
     @BeforeEach
-    void start() throws Exception {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/", exchange -> {
-            calls.incrementAndGet();
-            credentialsCorrect &= KEY.equals(exchange.getRequestHeaders().getFirst("x-webapi-key"))
-                    && !exchange.getRequestURI().toString().contains(KEY)
-                    && "GET".equals(exchange.getRequestMethod());
-            boolean isSchema = exchange.getRequestURI().getPath().contains("GetSchemaForGame/v2");
-            byte[] body = (isSchema ? schema : player).getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(isSchema ? 200 : playerStatus, body.length);
-            try (var output = exchange.getResponseBody()) {
-                output.write(body);
-            }
-        });
-        server.start();
-        api = new SteamWebApi(HttpClient.newHttpClient(),
-                URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"));
+    public void start() {
+        try {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            server.createContext("/", (final var exchange) -> {
+                try {
+                    calls.incrementAndGet();
+                    credentialsCorrect &= KEY.equals(exchange.getRequestHeaders().getFirst("x-webapi-key"))
+                            && !exchange.getRequestURI().toString().contains(KEY)
+                            && "GET".equals(exchange.getRequestMethod());
+                    final var isSchema = exchange.getRequestURI().getPath().contains("GetSchemaForGame/v2");
+                    final var body = (isSchema ? schema : player).getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(isSchema ? 200 : playerStatus, body.length);
+                    try (final var output = exchange.getResponseBody()) {
+                        output.write(body);
+                    }
+
+                } catch (final IOException exception) {
+                    throw new StoneException("Could not serve the fixture HTTP response.", exception);
+                }
+            });
+            server.start();
+            api = new SteamWebApi(HttpClient.newHttpClient(),
+                    URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"));
+
+        } catch (final IOException exception) {
+            throw new StoneException("Could not start the fixture HTTP server.", exception);
+        }
     }
 
     @AfterEach
-    void stop() {
+    public void stop() {
         server.stop(0);
     }
 
     @Test
-    void joinsByApiIdentifierRatherThanResponseOrder() throws Exception {
-        var result = api.loadAchievements(KEY, ID, 10);
-        var first = result.achievements().getFirst();
+    public void joinsByApiIdentifierRatherThanResponseOrder() {
+        final var result = api.loadAchievements(KEY, ID, 10);
+        final var first = result.achievements().getFirst();
         assertEquals("First step", first.name());
         assertEquals(AchievementState.UNLOCKED, first.state());
         assertEquals(12345, first.unlockTime());
@@ -79,39 +90,39 @@ class AchievementApiTest {
     }
 
     @Test
-    void unavailablePlayerDataIsNeverAssumedLocked() throws Exception {
+    public void unavailablePlayerDataIsNeverAssumedLocked() {
         playerStatus = 403;
-        var result = api.loadAchievements(KEY, ID, 10);
+        final var result = api.loadAchievements(KEY, ID, 10);
         assertEquals(2, result.achievements().size());
-        assertTrue(result.achievements().stream().allMatch(a -> a.state() == AchievementState.UNKNOWN));
+        assertTrue(result.achievements().stream().allMatch((final var a) -> a.state() == AchievementState.UNKNOWN));
         assertFalse(result.notice().isBlank());
     }
 
     @Test
-    void missingOrMalformedStatesRemainUnknown() throws Exception {
+    public void missingOrMalformedStatesRemainUnknown() {
         player = """
                 {"playerstats":{"success":true,"achievements":[{"apiname":"FIRST","achieved":2}]}}
                 """;
-        var result = api.loadAchievements(KEY, ID, 10);
-        assertTrue(result.achievements().stream().allMatch(a -> a.state() == AchievementState.UNKNOWN));
+        final var result = api.loadAchievements(KEY, ID, 10);
+        assertTrue(result.achievements().stream().allMatch((final var a) -> a.state() == AchievementState.UNKNOWN));
         assertFalse(result.notice().isBlank());
     }
 
     @Test
-    void rejectsDifferentAccount() {
+    public void rejectsDifferentAccount() {
         player = player.replace(ID, "76561198000000001");
         assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
     }
 
     @Test
-    void emptyDefinitionsSkipPlayerRequest() throws Exception {
+    public void emptyDefinitionsSkipPlayerRequest() {
         schema = "{\"game\":{\"availableGameStats\":{\"achievements\":[]}}}";
         assertTrue(api.loadAchievements(KEY, ID, 10).achievements().isEmpty());
         assertEquals(1, calls.get());
     }
 
     @Test
-    void rejectsInvalidDefinitionsAndDuplicateIds() {
+    public void rejectsInvalidDefinitionsAndDuplicateIds() {
         schema = schema.replace("SECRET", "FIRST");
         assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
         schema = "{\"game\":{\"availableGameStats\":{\"achievements\":{}}}}";
@@ -119,20 +130,20 @@ class AchievementApiTest {
     }
 
     @Test
-    void rejectsDuplicateStates() {
+    public void rejectsDuplicateStates() {
         player = player.replace("SECRET", "FIRST");
         assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, 10));
     }
 
     @Test
-    void usesPlayerDescriptionWhenSchemaOmitsHiddenDescription() throws Exception {
+    public void usesPlayerDescriptionWhenSchemaOmitsHiddenDescription() {
         player = player.replace("\"apiname\":\"SECRET\",\"achieved\":0",
                 "\"apiname\":\"SECRET\",\"achieved\":0,\"description\":\"Find the secret door\"");
         assertEquals("Find the secret door", api.loadAchievements(KEY, ID, 10).achievements().get(1).description());
     }
 
     @Test
-    void validatesContextBeforeRequests() {
+    public void validatesContextBeforeRequests() {
         assertThrows(StoneException.class, () -> api.loadAchievements(KEY, ID, -1));
         assertThrows(StoneException.class, () -> api.loadAchievements("bad", ID, 10));
         assertEquals(0, calls.get());

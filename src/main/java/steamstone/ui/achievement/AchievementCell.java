@@ -13,7 +13,7 @@ import javafx.scene.layout.VBox;
 import steamstone.model.achievement.Achievement;
 import steamstone.model.achievement.AchievementState;
 
-final class AchievementCell extends ListCell<Achievement> {
+public final class AchievementCell extends ListCell<Achievement> {
     private final AchievementEditor editor;
     private final CheckBox check = new CheckBox();
     private final ImageView image = new ImageView();
@@ -22,15 +22,15 @@ final class AchievementCell extends ListCell<Achievement> {
     private final Label state = AchievementEditor.label("", "achievement-state");
     private final HBox row;
 
-    AchievementCell(final AchievementEditor editor) {
+    public AchievementCell(final AchievementEditor editor) {
         this.editor = editor;
         image.setFitWidth(32);
         image.setFitHeight(32);
-        var cover = new StackPane(image);
+        final var cover = new StackPane(image);
         cover.setMinSize(32, 32);
         cover.setMaxSize(32, 32);
         cover.getStyleClass().add("achievement-cover");
-        var text = new VBox(3, name, description);
+        final var text = new VBox(3, name, description);
         text.setMinWidth(0);
         name.setMaxWidth(Double.MAX_VALUE);
         description.setMaxWidth(Double.MAX_VALUE);
@@ -38,7 +38,7 @@ final class AchievementCell extends ListCell<Achievement> {
         row = new HBox(10, check, cover, text, state);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("achievement-row");
-        check.setOnAction(e -> {
+        check.setOnAction((final var e) -> {
             if (getItem() != null) {
                 editor.preview().setUnlocked(getItem(), check.isSelected());
                 editor.changed();
@@ -47,7 +47,7 @@ final class AchievementCell extends ListCell<Achievement> {
     }
 
     @Override
-    protected void updateItem(Achievement achievement, boolean emptyCell) {
+    protected void updateItem(final Achievement achievement, final boolean emptyCell) {
         super.updateItem(achievement, emptyCell);
         setText(null);
         row.getStyleClass().removeAll("unlocked-row", "locked-row", "unknown-row", "changed-row");
@@ -56,9 +56,9 @@ final class AchievementCell extends ListCell<Achievement> {
             image.setImage(null);
             return;
         }
-        boolean unknown = achievement.state() == AchievementState.UNKNOWN;
-        boolean unlocked = editor.preview().isUnlocked(achievement);
-        boolean edited = editor.preview().isChanged(achievement);
+        final var unknown = achievement.state() == AchievementState.UNKNOWN;
+        final var unlocked = editor.preview().isUnlocked(achievement);
+        final var edited = editor.preview().isChanged(achievement);
         row.getStyleClass().add(unknown ? "unknown-row" : unlocked ? "unlocked-row" : "locked-row");
         if (edited)
             row.getStyleClass().add("changed-row");

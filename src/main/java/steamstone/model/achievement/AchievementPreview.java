@@ -11,7 +11,7 @@ public final class AchievementPreview {
     private final List<Achievement> achievements;
     private final Map<String, Boolean> changes = new LinkedHashMap<>();
 
-    public AchievementPreview(List<Achievement> achievements) {
+    public AchievementPreview(final List<Achievement> achievements) {
         this.achievements = List.copyOf(achievements);
     }
 
@@ -27,15 +27,15 @@ public final class AchievementPreview {
         return changes.size();
     }
 
-    public boolean isChanged(Achievement achievement) {
+    public boolean isChanged(final Achievement achievement) {
         return changes.containsKey(achievement.id());
     }
 
-    public boolean isUnlocked(Achievement achievement) {
+    public boolean isUnlocked(final Achievement achievement) {
         return changes.getOrDefault(achievement.id(), achievement.state() == AchievementState.UNLOCKED);
     }
 
-    public void setUnlocked(Achievement achievement, boolean unlocked) {
+    public void setUnlocked(final Achievement achievement, final boolean unlocked) {
         if (achievement.state() == AchievementState.UNKNOWN || !achievements.contains(achievement))
             return;
         if (unlocked == (achievement.state() == AchievementState.UNLOCKED))
@@ -44,8 +44,8 @@ public final class AchievementPreview {
             changes.put(achievement.id(), unlocked);
     }
 
-    public void setAll(boolean unlocked) {
-        for (Achievement achievement : achievements)
+    public void setAll(final boolean unlocked) {
+        for (final var achievement : achievements)
             setUnlocked(achievement, unlocked);
     }
 

@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class StorageCallbackTest {
+public class StorageCallbackTest {
     @Test
-    void ignoresEventsBeforeStoreAndForOtherGamesAndKeepsFirstMatchingResult() {
-        var callback = new StorageCallback(10);
+    public void ignoresEventsBeforeStoreAndForOtherGamesAndKeepsFirstMatchingResult() {
+        final var callback = new StorageCallback(10);
         callback.onUserStatsStored(10, SteamResult.OK);
         assertNull(callback.result());
         callback.begin();
