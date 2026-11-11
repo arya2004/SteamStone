@@ -3,7 +3,17 @@ package steamstone.model;
 import java.time.Instant;
 import java.util.List;
 
-public record SteamLibrary(String steamId, String playerName, List<Game> games, Instant fetchedAt) {
+import lombok.Value;
+import lombok.experimental.Accessors;
+
+@Value
+@Accessors(fluent = true)
+public final class SteamLibrary {
+    private final String steamId;
+    private final String playerName;
+    private final List<Game> games;
+    private final Instant fetchedAt;
+
     public SteamLibrary(final String steamId, final String playerName, final List<Game> games,
                         final Instant fetchedAt) {
         this.steamId = steamId;

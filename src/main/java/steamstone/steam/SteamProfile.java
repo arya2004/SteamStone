@@ -2,12 +2,20 @@ package steamstone.steam;
 
 import java.net.URI;
 
+import lombok.Value;
+import lombok.experimental.Accessors;
+
 import steamstone.exception.StoneException;
 
 /**
  * Explicit user input: a SteamID64, vanity name, or Steam Community profile URL.
  */
-public record SteamProfile(String value, boolean needsResolution) {
+@Value
+@Accessors(fluent = true)
+public final class SteamProfile {
+    private final String value;
+    private final boolean needsResolution;
+
     public static SteamProfile parse(final String input) {
         if (input == null || input.isBlank()) {
             throw new StoneException("Enter your Steam profile URL or 17-digit SteamID64.");

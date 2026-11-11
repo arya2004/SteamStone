@@ -1,17 +1,38 @@
 package steamstone.steam.nativeapi.protocol;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Map;
+
+import lombok.Value;
+import lombok.experimental.Accessors;
 
 import steamstone.exception.StoneException;
 
 /**
  * Immutable, account-scoped edits; no Web API credentials cross this boundary.
  */
-public record Request(long appId, String steamId, List<String> ids,
-                      Map<String, Boolean> expected, Map<String, Boolean> changes) {
-    public Request(final long appId, final String steamId, final List<String> ids,
-                   final Map<String, Boolean> expected, final Map<String, Boolean> changes) {
+@Value
+@Accessors(fluent = true)
+public final class Request {
+    @JsonProperty("appId")
+    private final long appId;
+    @JsonProperty("steamId")
+    private final String steamId;
+    @JsonProperty("ids")
+    private final List<String> ids;
+    @JsonProperty("expected")
+    private final Map<String, Boolean> expected;
+    @JsonProperty("changes")
+    private final Map<String, Boolean> changes;
+
+    @JsonCreator
+    public Request(@JsonProperty("appId") final long appId, @JsonProperty("steamId") final String steamId,
+                   @JsonProperty("ids") final List<String> ids,
+                   @JsonProperty("expected") final Map<String, Boolean> expected,
+                   @JsonProperty("changes") final Map<String, Boolean> changes) {
         this.appId = appId;
         this.steamId = steamId;
         try {
