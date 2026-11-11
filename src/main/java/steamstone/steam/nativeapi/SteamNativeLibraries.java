@@ -2,30 +2,34 @@ package steamstone.steam.nativeapi;
 
 import com.codedisaster.steamworks.SteamLibraryLoader;
 
-import java.nio.file.*;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
+
+import steamstone.exception.StoneException;
 
 /**
  * Load native files prepared at build/install time; never extract libraries at application startup.
  */
-final class SteamNativeLibraries implements SteamLibraryLoader {
+public final class SteamNativeLibraries implements SteamLibraryLoader {
     private final Path directory;
 
-    SteamNativeLibraries() {
+    public SteamNativeLibraries() {
         try {
-            Path application = Path.of(SteamNativeLibraries.class.getProtectionDomain()
+            final var application = Path.of(SteamNativeLibraries.class.getProtectionDomain()
                     .getCodeSource().getLocation().toURI());
             // Development: target/classes -> target/native. Installed: app/steamstone.jar -> app/native.
             directory = application.getParent().resolve("native");
-        } catch (java.net.URISyntaxException ex) {
-            throw new IllegalStateException("Could not locate the installed Steam libraries.", ex);
+        } catch (final URISyntaxException ex) {
+            throw new StoneException("Could not locate the installed Steam libraries.", ex);
         }
     }
 
-    Path path(String name) {
-        String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
-        String arch = System.getProperty("os.arch");
-        String file;
+    public Path path(final String name) {
+        final var os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+        final var arch = System.getProperty("os.arch");
+        final String file;
         if (os.contains("mac"))
             file = "lib" + name + ".dylib";
         else if (os.contains("win"))
@@ -33,15 +37,15 @@ final class SteamNativeLibraries implements SteamLibraryLoader {
         else if (os.contains("linux") && (arch.equals("amd64") || arch.equals("x86_64")))
             file = "lib" + name + ".so";
         else
-            throw new IllegalStateException("No bundled Steam native runtime for this OS/architecture.");
+            throw new StoneException("No bundled Steam native runtime for this OS/architecture.");
         return directory.resolve(file);
     }
 
     @Override
-    public boolean loadLibrary(String name) {
-        Path destination = path(name);
+    public boolean loadLibrary(final String name) {
+        final var destination = path(name);
         if (!Files.isRegularFile(destination)) {
-            throw new IllegalStateException(
+            throw new StoneException(
                     "Steam native libraries are missing. Rebuild the project or reinstall SteamStone.");
         }
         System.load(destination.toAbsolutePath().toString());

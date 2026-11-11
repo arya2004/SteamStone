@@ -1,16 +1,26 @@
 package steamstone.steam.nativeapi;
 
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.codedisaster.steamworks.SteamAPI;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.nio.file.*;
 import java.io.File;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
-import static steamstone.steam.nativeapi.NativeProtocol.*;
+import steamstone.exception.StoneException;
+import steamstone.steam.nativeapi.NativeProtocol.Request;
+import steamstone.steam.nativeapi.NativeProtocol.Response;
+import steamstone.steam.nativeapi.NativeProtocol.Status;
+
 
 /**
  * Bounded subprocess calls; temp files contain context/edits, never the API key.
@@ -18,100 +28,88 @@ import static steamstone.steam.nativeapi.NativeProtocol.*;
 public final class NativeSteam {
     private final ObjectMapper json = new ObjectMapper();
 
-    public Response execute(Request request) throws Exception {
-        Path directory = Files.createTempDirectory("steamstone-session-");
-        Process process = null;
-        try {
-            Path input = directory.resolve("request.json"), output = directory.resolve("response.json");
+    public Response execute(final Request request) {
+        try (final var files = new WorkerFiles("steamstone-session-")) {
+            final var input = files.directory().resolve("request.json");
+            final var output = files.directory().resolve("response.json");
             json.writeValue(input.toFile(), request);
-            Files.writeString(directory.resolve("steam_appid.txt"), Long.toString(request.appId()));
-            var command = workerCommand();
+            Files.writeString(files.directory().resolve("steam_appid.txt"), Long.toString(request.appId()));
+            final var command = workerCommand();
             command.add(input.toString());
             command.add(output.toString());
-            var builder = new ProcessBuilder(command);
-            builder.directory(directory.toFile());
+            final var builder = new ProcessBuilder(command).directory(files.directory().toFile());
             // Linux jpackage's re-exec marker belongs to the parent launcher only.
             builder.environment().remove("_JPACKAGE_LAUNCHER");
             builder.environment().put("SteamAppId", Long.toString(request.appId()));
             builder.environment().put("SteamGameId", Long.toString(request.appId()));
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             builder.redirectError(ProcessBuilder.Redirect.DISCARD);
-            process = builder.start();
-            if (!process.waitFor(50, TimeUnit.SECONDS)) {
-                process.destroyForcibly().waitFor();
-                return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
-                        "Steam session timed out. Changes may still sync; reload before retrying.", Map.of());
+            try (final var process = new WorkerProcess(builder)) {
+                if (!process.await(50)) {
+                    return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
+                            "Steam session timed out. Changes may still sync; reload before retrying.", Map.of());
+                }
+                if (!Files.isRegularFile(output) || Files.size(output) > 8_000_000) {
+                    throw new StoneException("Steam worker exited without a valid result. Reload before retrying; "
+                            + "changes may still sync.");
+                }
+                final var result = json.readValue(output.toFile(), Response.class);
+                if (result.appId() != request.appId() || !result.steamId().equals(request.steamId())) {
+                    throw new StoneException("Steam worker returned a different account/game context.");
+                }
+                return result;
             }
-            if (!Files.isRegularFile(output) || Files.size(output) > 8_000_000) {
-                throw new IllegalStateException(
-                        "Steam worker exited without a valid result. Reload before retrying; changes may still sync.");
-            }
-            Response result = json.readValue(output.toFile(), Response.class);
-            if (result.appId() != request.appId() || !result.steamId().equals(request.steamId())) {
-                throw new IllegalStateException("Steam worker returned a different account/game context.");
-            }
-            return result;
-        } finally {
-            if (process != null && process.isAlive()) {
-                process.destroyForcibly();
-                process.waitFor();
-            }
-            try (var paths = Files.walk(directory)) {
-                for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
-                    Files.deleteIfExists(path);
-            }
+        } catch (final IOException exception) {
+            throw new StoneException("Could not exchange the Steam worker result. Changes may still sync; reload "
+                    + "before retrying.", exception);
         }
     }
 
     /**
-     * Packaging probe: exercise the same child launcher as real operations, without opening Steam.
+     * Packaging probe: loads the child launcher without opening a Steam session.
      */
-    public void checkRuntime() throws Exception {
-        Path directory = Files.createTempDirectory("steamstone-runtime-check-");
-        Process process = null;
-        try {
-            var command = workerCommand();
+    public void checkRuntime() {
+        try (final var files = new WorkerFiles("steamstone-runtime-check-")) {
+            final var command = workerCommand();
             command.add("--check-runtime");
-            var builder = new ProcessBuilder(command).directory(directory.toFile()).inheritIO();
+            final var builder = new ProcessBuilder(command).directory(files.directory().toFile()).inheritIO();
             builder.environment().remove("_JPACKAGE_LAUNCHER");
-            process = builder.start();
-            if (!process.waitFor(30, TimeUnit.SECONDS))
-                throw new IllegalStateException("Bundled worker check timed out.");
-            if (process.exitValue() != 0)
-                throw new IllegalStateException("Bundled Steam worker check failed.");
-        } finally {
-            if (process != null && process.isAlive()) {
-                process.destroyForcibly();
-                process.waitFor();
-            }
-            try (var paths = Files.walk(directory)) {
-                for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
-                    Files.deleteIfExists(path);
+            try (final var process = new WorkerProcess(builder)) {
+                if (!process.await(30)) {
+                    throw new StoneException("Bundled worker check timed out.");
+                }
+                if (process.exitValue() != 0) {
+                    throw new StoneException("Bundled Steam worker check failed.");
+                }
             }
         }
     }
 
-    private List<String> workerCommand() throws Exception {
-        var command = new ArrayList<String>();
-        // jpackage supplies a second launcher using the bundled runtime (no system JDK required).
-        String os = System.getProperty("os.name");
-        String worker = os.startsWith("Mac") ? "../../../MacOS/SteamStoneWorker"
+    private List<String> workerCommand() {
+        final var command = new ArrayList<String>();
+        final var os = System.getProperty("os.name");
+        final var worker = os.startsWith("Mac") ? "../../../MacOS/SteamStoneWorker"
                 : os.startsWith("Windows") ? "../SteamStoneWorker.exe" : "../../bin/SteamStoneWorker";
-        Path packaged = Path.of(System.getProperty("java.home")).resolve(worker).normalize();
-        if (Files.isExecutable(packaged))
+        final var packaged = Path.of(System.getProperty("java.home")).resolve(worker).normalize();
+        if (Files.isExecutable(packaged)) {
             command.add(packaged.toString());
-        else {
-            String exe = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
-            Path java = Path.of(System.getProperty("java.home"), "bin", exe);
-            if (!Files.isExecutable(java))
-                throw new IllegalStateException("Bundled Steam worker launcher is missing.");
+        } else {
+            final var executable = os.startsWith("Windows") ? "java.exe" : "java";
+            final var java = Path.of(System.getProperty("java.home"), "bin", executable);
+            if (!Files.isExecutable(java)) {
+                throw new StoneException("Bundled Steam worker launcher is missing.");
+            }
             command.add(java.toString());
             command.add("--enable-native-access=ALL-UNNAMED");
             command.add("-cp");
-            var classpath = new LinkedHashSet<String>();
-            for (Class<?> type : List.of(NativeWorker.class, ObjectMapper.class, JsonNode.class,
+            final var classpath = new LinkedHashSet<String>();
+            for (final var type : List.of(NativeWorker.class, ObjectMapper.class, JsonNode.class,
                     JsonFactory.class, JsonCreator.class, SteamAPI.class)) {
-                classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString());
+                try {
+                    classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString());
+                } catch (final URISyntaxException exception) {
+                    throw new StoneException("Could not locate the Steam worker's runtime classpath.", exception);
+                }
             }
             command.add(String.join(File.pathSeparator, classpath));
             command.add(NativeWorker.class.getName());

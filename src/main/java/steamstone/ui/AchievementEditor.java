@@ -134,7 +134,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         final String requestKey = key, account = steamId;
         var next = new Task<Loaded>() {
             @Override
-            protected Loaded call() throws Exception {
+            protected Loaded call() {
                 var web = api.loadAchievements(requestKey, account, appId);
                 if (isCancelled() || web.achievements().isEmpty())
                     return new Loaded(web, false);
@@ -145,9 +145,10 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                     if (response.status() == Status.READ)
                         return new Loaded(merge(web.achievements(), response, ""), true);
                     return new Loaded(new AchievementList(web.achievements(), response.message()), false);
-                } catch (InterruptedException ex) {
-                    throw ex;
-                } catch (Exception ex) {
+                } catch (StoneException ex) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new StoneException("Achievement loading was cancelled.", ex);
+                    }
                     return new Loaded(new AchievementList(web.achievements(),
                             "Native Steam session unavailable. Keep Steam running and sign in to this account; reload" +
                                     " to enable editing."),
@@ -249,7 +250,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         changed();
         var next = new Task<Response>() {
             @Override
-            protected Response call() throws Exception {
+            protected Response call() {
                 return nativeSteam.execute(request);
             }
         };

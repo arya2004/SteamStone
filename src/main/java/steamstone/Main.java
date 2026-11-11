@@ -7,7 +7,7 @@ public final class Main {
     private Main() {
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         if (args.length == 1 && args[0].equals("--check-runtime")) {
             new steamstone.steam.nativeapi.NativeSteam().checkRuntime();
             return;

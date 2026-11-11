@@ -1,5 +1,6 @@
 package steamstone.steam.nativeapi;
 
+import steamstone.exception.StoneException;
 import steamstone.model.Achievement;
 
 import java.util.LinkedHashMap;
@@ -16,10 +17,10 @@ public final class AchievementCommit {
 
         boolean set(String id, boolean unlocked);
 
-        boolean storeAndWait() throws Exception;
+        boolean storeAndWait();
     }
 
-    public Response execute(Request request, Stats stats) throws Exception {
+    public Response execute(Request request, Stats stats) {
         Map<String, Entry> before = readAll(request, stats);
         if (request.changes().isEmpty())
             return response(request, Status.READ, "", before);
@@ -47,9 +48,9 @@ public final class AchievementCommit {
         boolean stored;
         try {
             stored = stats.storeAndWait();
-        } catch (Exception ex) {
-            return response(request, Status.UNKNOWN,
-                    "Steam did not confirm storage. Some changes may still sync. Reload before retrying.", before);
+        } catch (RuntimeException ex) {
+            throw new StoneException(
+                    "Steam did not confirm storage. Some changes may still sync. Reload before retrying.", ex);
         }
         if (!stored)
             return response(request, Status.UNKNOWN,

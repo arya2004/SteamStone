@@ -1,10 +1,15 @@
 package steamstone.steam.nativeapi;
 
+import steamstone.exception.StoneException;
 import com.codedisaster.steamworks.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.file.*;
 import java.time.Duration;
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+
+import steamstone.concurrent.StoneFutures;
 
 import static steamstone.steam.nativeapi.NativeProtocol.*;
 
@@ -12,39 +17,42 @@ import static steamstone.steam.nativeapi.NativeProtocol.*;
  * One game/account per process. Never initializes Steam in the JavaFX process.
  */
 public final class NativeWorker {
-    public static void main(String[] args) throws Exception {
-        if (args.length == 1 && args[0].equals("--check-runtime")) {
-            var loader = new SteamNativeLibraries();
-            SteamAPI.loadLibraries(loader);
-            try (var arena = java.lang.foreign.Arena.ofConfined()) {
-                var symbols = java.lang.foreign.SymbolLookup.libraryLookup(loader.path("steam_api"), arena);
-                for (String symbol : java.util.List.of("SteamAPI_SteamUserStats_v013",
-                        "SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute",
-                        "SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime")) {
-                    if (symbols.find(symbol).isEmpty())
-                        throw new IllegalStateException("Missing Steam API symbol: " + symbol);
-                }
-            }
-            System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
-            return;
-        }
-        if (args.length != 2)
-            throw new IllegalArgumentException("Expected request and response paths.");
-        var json = new ObjectMapper();
-        Request request = json.readValue(Path.of(args[0]).toFile(), Request.class);
-        Response response;
+    public static void main(String[] args) {
         try {
-            response = run(request);
-        } catch (Throwable ex) {
-            response = new Response(request.appId(), request.steamId(), Status.UNKNOWN,
-                    "Could not open the Steam session. Keep Steam running, sign in to the selected account, and check" +
-                            " game ownership/platform compatibility.",
-                    java.util.Map.of());
+            if (args.length == 1 && args[0].equals("--check-runtime")) {
+                var loader = new SteamNativeLibraries();
+                SteamAPI.loadLibraries(loader);
+                try (var arena = java.lang.foreign.Arena.ofConfined()) {
+                    var symbols = java.lang.foreign.SymbolLookup.libraryLookup(loader.path("steam_api"), arena);
+                    for (String symbol : java.util.List.of("SteamAPI_SteamUserStats_v013",
+                            "SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute",
+                            "SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime")) {
+                        if (symbols.find(symbol).isEmpty())
+                            throw new StoneException("Missing Steam API symbol: " + symbol);
+                    }
+                }
+                System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
+                return;
+            }
+            if (args.length != 2)
+                throw new StoneException("Expected request and response paths.");
+            var json = new ObjectMapper();
+            Request request = json.readValue(Path.of(args[0]).toFile(), Request.class);
+            Response response = StoneFutures.await(CompletableFuture.completedFuture(request)
+                    .thenApply(NativeWorker::run).exceptionally(failure -> new Response(
+                            request.appId(), request.steamId(), Status.UNKNOWN,
+                            "Could not confirm the Steam session result. Keep Steam running, sign in to the selected "
+                                    + "account, and reload before retrying; changes may still sync.",
+                            java.util.Map.of())));
+            json.writeValue(Path.of(args[1]).toFile(), response);
+        } catch (IOException ex) {
+            throw new StoneException("Could not read or write the Steam worker protocol files.", ex);
+        } catch (RuntimeException | LinkageError ex) {
+            throw new StoneException("Could not run the Steam native worker.", ex);
         }
-        json.writeValue(Path.of(args[1]).toFile(), response);
     }
 
-    static Response run(Request request) throws Throwable {
+    static Response run(Request request) {
         boolean initialized = false;
         SteamUser user = null;
         SteamUtils utils = null;
@@ -93,31 +101,49 @@ public final class NativeWorker {
                     }
 
                     @Override
-                    public boolean storeAndWait() throws Exception {
+                    public boolean storeAndWait() {
                         callback.begin();
-                        if (!activeStats.storeStats())
-                            return false;
-                        long until = System.nanoTime() + Duration.ofSeconds(25).toNanos();
-                        while (callback.result() == null && System.nanoTime() < until) {
-                            SteamAPI.runCallbacks();
-                            Thread.sleep(50);
+                        try {
+                            if (!activeStats.storeStats())
+                                return false;
+                            long until = System.nanoTime() + Duration.ofSeconds(25).toNanos();
+                            while (callback.result() == null && System.nanoTime() < until) {
+                                SteamAPI.runCallbacks();
+                                Thread.sleep(50);
+                            }
+                            if (callback.result() == null)
+                                throw new StoneException("Storage callback timed out.");
+                            return callback.result() == SteamResult.OK;
+                        } catch (InterruptedException ex) {
+                            throw new StoneException("Waiting for Steam storage was interrupted. Changes may still sync.", ex);
+                        } finally {
+                            callback.waiting = false;
                         }
-                        callback.waiting = false;
-                        if (callback.result() == null)
-                            throw new IllegalStateException("Storage callback timed out.");
-                        return callback.result() == SteamResult.OK;
                     }
                 });
             }
+        } catch (InterruptedException ex) {
+            throw new StoneException("The Steam session was interrupted. Changes may still sync.", ex);
+        } catch (Exception | LinkageError ex) {
+            throw new StoneException("Could not complete the Steam session. Changes may still sync.", ex);
         } finally {
-            if (stats != null)
-                stats.dispose();
-            if (utils != null)
-                utils.dispose();
-            if (user != null)
-                user.dispose();
-            if (initialized)
-                SteamAPI.shutdown();
+            try {
+                if (stats != null)
+                    stats.dispose();
+            } finally {
+                try {
+                    if (utils != null)
+                        utils.dispose();
+                } finally {
+                    try {
+                        if (user != null)
+                            user.dispose();
+                    } finally {
+                        if (initialized)
+                            SteamAPI.shutdown();
+                    }
+                }
+            }
         }
     }
 

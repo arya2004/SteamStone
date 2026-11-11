@@ -1,49 +1,66 @@
 package steamstone.steam.nativeapi;
 
-import java.lang.foreign.*;
+import steamstone.steam.nativeapi.NativeProtocol.Entry;
+import steamstone.model.Achievement;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 
-import steamstone.model.Achievement;
+import steamstone.exception.StoneException;
 
-import static java.lang.foreign.ValueLayout.*;
+import steamstone.steam.nativeapi.NativeProtocol.Entry;
+
+import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 /**
  * Two documented flat C API reads missing from steamworks4j 1.10.0. SDK/runtime version is pinned.
  */
-final class SteamAttributes implements AutoCloseable {
+public final class SteamAttributes implements AutoCloseable {
     private final Arena arena = Arena.ofConfined();
     private final MemorySegment stats;
     private final MethodHandle attribute, read;
 
-    SteamAttributes(Path library) throws Throwable {
-        var symbols = SymbolLookup.libraryLookup(library, arena);
-        var linker = Linker.nativeLinker();
-        var getter = linker.downcallHandle(symbols.find("SteamAPI_SteamUserStats_v013").orElseThrow(),
-                FunctionDescriptor.of(ADDRESS));
-        stats = (MemorySegment) getter.invokeExact();
-        if (stats.equals(MemorySegment.NULL))
-            throw new IllegalStateException("Steam stats interface unavailable.");
-        attribute = linker.downcallHandle(
-                symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
-                FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
-        read = linker.downcallHandle(symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
-                FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
+    public SteamAttributes(final Path library) {
+        try {
+            final var symbols = SymbolLookup.libraryLookup(library, arena);
+            final var linker = Linker.nativeLinker();
+            final var getter = linker.downcallHandle(symbols.find("SteamAPI_SteamUserStats_v013").orElseThrow(),
+                    FunctionDescriptor.of(ADDRESS));
+            stats = (MemorySegment) getter.invokeExact();
+            if (stats.equals(MemorySegment.NULL))
+                throw new StoneException("Steam stats interface unavailable.");
+            attribute = linker.downcallHandle(
+                    symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
+                    FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
+            read = linker.downcallHandle(symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
+                    FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
+        } catch (final Throwable exception) {
+            try (arena) {
+                throw new StoneException("Could not initialize Steam achievement reads.", exception);
+            }
+        }
     }
 
-    NativeProtocol.Entry read(String id) {
-        try (var temporary = Arena.ofConfined()) {
-            var name = temporary.allocateFrom(id);
-            var achieved = temporary.allocate(JAVA_BOOLEAN);
-            var time = temporary.allocate(JAVA_INT);
-            boolean valid = (boolean) read.invokeExact(stats, name, achieved, time);
-            var pointer = (MemorySegment) attribute.invokeExact(stats, name, temporary.allocateFrom("desc"));
-            String description = pointer.equals(MemorySegment.NULL) ? "" : pointer.reinterpret(65536).getString(0);
-            return new NativeProtocol.Entry(!valid ? Achievement.State.UNKNOWN
+    public Entry read(final String id) {
+        try (final var temporary = Arena.ofConfined()) {
+            final var name = temporary.allocateFrom(id);
+            final var achieved = temporary.allocate(JAVA_BOOLEAN);
+            final var time = temporary.allocate(JAVA_INT);
+            final var valid = (boolean) read.invokeExact(stats, name, achieved, time);
+            final var pointer = (MemorySegment) attribute.invokeExact(stats, name, temporary.allocateFrom("desc"));
+            final var description = pointer.equals(MemorySegment.NULL) ? "" : pointer.reinterpret(65536).getString(0);
+            return new Entry(!valid ? Achievement.State.UNKNOWN
                     : achieved.get(JAVA_BOOLEAN, 0) ? Achievement.State.UNLOCKED : Achievement.State.LOCKED,
                     description, valid ? Integer.toUnsignedLong(time.get(JAVA_INT, 0)) : 0);
-        } catch (Throwable ex) {
-            throw new IllegalStateException("Steam achievement read failed.", ex);
+        } catch (final Throwable ex) {
+            throw new StoneException("Steam achievement read failed.", ex);
         }
     }
 
