@@ -1,18 +1,22 @@
 package steamstone.steam;
 
+import com.google.inject.Guice;
+import com.google.inject.util.Modules;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import steamstone.exception.StoneException;
+import steamstone.inject.SteamApiFixtureModule;
+import steamstone.inject.SteamStoneModule;
 import steamstone.model.achievement.AchievementState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,8 +65,9 @@ public class AchievementApiTest {
                 }
             });
             server.start();
-            api = new SteamWebApi(HttpClient.newHttpClient(),
-                    URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"));
+            final var base = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
+            api = Guice.createInjector(Modules.override(new SteamStoneModule())
+                    .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
         } catch (final IOException exception) {
             throw new StoneException("Could not start the fixture HTTP server.", exception);

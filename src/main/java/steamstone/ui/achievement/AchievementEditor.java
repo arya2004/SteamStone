@@ -1,14 +1,5 @@
 package steamstone.ui.achievement;
 
-import java.net.URI;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.concurrent.Task;
@@ -26,6 +17,20 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import lombok.RequiredArgsConstructor;
+
 import steamstone.concurrent.StoneFutures;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
@@ -43,6 +48,7 @@ import steamstone.ui.task.StoneTask;
 /**
  * Stages edits locally and commits through an isolated, account-checked Steam worker.
  */
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class AchievementEditor extends VBox implements AutoCloseable {
     private final SteamWebApi api;
     private final ExecutorService requests = Executors.newSingleThreadExecutor(
@@ -62,15 +68,16 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private Game game;
     private String key, steamId;
 
-    private final NativeSteam nativeSteam = new NativeSteam();
+    private final NativeSteam nativeSteam;
+    private final Provider<AchievementCell> cells;
     private final ReadOnlyBooleanWrapper committing = new ReadOnlyBooleanWrapper(false);
     private boolean nativeReady;
     private Task<LoadedAchievements> task;
     private Task<Response> commitTask;
     private String dataNotice = "";
 
-    public AchievementEditor(final SteamWebApi api) {
-        this.api = api;
+    @Inject
+    private void initialize() {
         getStyleClass().add("editor-page");
         title.setId("editor-game-name");
         title.setMaxWidth(Double.MAX_VALUE);
@@ -95,7 +102,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         list.getStyleClass().add("achievement-list");
         list.setFixedCellSize(56);
         list.setPlaceholder(empty);
-        list.setCellFactory((final var view) -> new AchievementCell(this));
+        list.setCellFactory((final var view) -> cells.get());
         final var body = new VBox(6, notice, list);
         body.getStyleClass().add("achievement-body");
         VBox.setVgrow(list, Priority.ALWAYS);

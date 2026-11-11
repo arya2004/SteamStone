@@ -10,9 +10,14 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import jakarta.inject.Inject;
+
+import lombok.RequiredArgsConstructor;
+
 import steamstone.model.achievement.Achievement;
 import steamstone.model.achievement.AchievementState;
 
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class AchievementCell extends ListCell<Achievement> {
     private final AchievementEditor editor;
     private final CheckBox check = new CheckBox();
@@ -20,10 +25,10 @@ public final class AchievementCell extends ListCell<Achievement> {
     private final Label name = AchievementEditor.label("", "achievement-name");
     private final Label description = AchievementEditor.label("", "achievement-description");
     private final Label state = AchievementEditor.label("", "achievement-state");
-    private final HBox row;
+    private final HBox row = new HBox();
 
-    public AchievementCell(final AchievementEditor editor) {
-        this.editor = editor;
+    @Inject
+    private void initialize() {
         image.setFitWidth(32);
         image.setFitHeight(32);
         final var cover = new StackPane(image);
@@ -35,7 +40,8 @@ public final class AchievementCell extends ListCell<Achievement> {
         name.setMaxWidth(Double.MAX_VALUE);
         description.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(text, Priority.ALWAYS);
-        row = new HBox(10, check, cover, text, state);
+        row.setSpacing(10);
+        row.getChildren().setAll(check, cover, text, state);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("achievement-row");
         check.setOnAction((final var e) -> {

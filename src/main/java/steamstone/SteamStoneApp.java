@@ -3,7 +3,7 @@ package steamstone;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import steamstone.steam.SteamWebApi;
+import steamstone.inject.SteamStoneInjector;
 import steamstone.ui.library.LibraryView;
 
 public final class SteamStoneApp extends Application {
@@ -11,7 +11,7 @@ public final class SteamStoneApp extends Application {
 
     @Override
     public void start(final Stage stage) {
-        libraryView = new LibraryView(new SteamWebApi());
+        libraryView = SteamStoneInjector.createView();
         final var scene = new Scene(libraryView, 1180, 800);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         stage.setTitle("SteamStone");

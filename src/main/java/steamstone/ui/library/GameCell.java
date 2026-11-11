@@ -1,7 +1,5 @@
 package steamstone.ui.library;
 
-import java.util.Locale;
-
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -12,17 +10,24 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import jakarta.inject.Inject;
+
+import java.util.Locale;
+
+import lombok.RequiredArgsConstructor;
+
 import steamstone.model.Game;
 
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class GameCell extends ListCell<Game> {
     private final LibraryView view;
     private final Label initial = LibraryView.label("", "game-initial");
     private final ImageView image = new ImageView();
     private final Label name = LibraryView.label("", "game-name");
-    private final HBox row;
+    private final HBox row = new HBox();
 
-    public GameCell(final LibraryView view) {
-        this.view = view;
+    @Inject
+    private void initialize() {
         image.setFitWidth(28);
         image.setFitHeight(28);
         final var cover = new StackPane(initial, image);
@@ -32,7 +37,8 @@ public final class GameCell extends ListCell<Game> {
         final var text = new VBox(name);
         text.setMinWidth(0);
         HBox.setHgrow(text, Priority.ALWAYS);
-        row = new HBox(10, cover, text);
+        row.setSpacing(10);
+        row.getChildren().setAll(cover, text);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("game-row");
         name.setMaxWidth(Double.MAX_VALUE);

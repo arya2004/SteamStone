@@ -3,14 +3,13 @@ package steamstone.steam.nativeapi.worker;
 import com.codedisaster.steamworks.SteamResult;
 import com.codedisaster.steamworks.SteamUserStatsCallback;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public final class StorageCallback implements SteamUserStatsCallback {
     private final long appId;
     private boolean waiting;
     private SteamResult result;
-
-    public StorageCallback(final long appId) {
-        this.appId = appId;
-    }
 
     public void begin() {
         result = null;

@@ -37,6 +37,9 @@ Keep changes focused and simple. One Maven module is intentional; avoid new fram
 - `steam/` handles documented read-only Web API calls.
 - `steam/nativeapi/` owns the isolated native worker and commit logic.
 - `ui/` contains the JavaFX views; `styles/app.css` controls appearance.
+- `inject/` contains the Guice composition root and application bindings. Lombok generates injection
+  constructors for final dependencies; `@Inject` initialization methods configure JavaFX views on
+  the application thread. Cell providers create fresh rows while sharing their owning view.
 
 Native workers must verify the game and account, check expected states before editing, wait for the matching storage callback, and read results back. Keep partial failures and uncertain outcomes explicit. Never add an automatic write or reset when browsing a game.
 

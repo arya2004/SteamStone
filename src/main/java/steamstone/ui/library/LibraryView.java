@@ -1,14 +1,5 @@
 package steamstone.ui.library;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -28,6 +19,20 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Polygon;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import lombok.RequiredArgsConstructor;
+
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
 import steamstone.model.SteamLibrary;
@@ -38,6 +43,7 @@ import steamstone.ui.task.StoneTask;
 /**
  * Owns this one screen's state. API requests run outside the JavaFX application thread.
  */
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class LibraryView extends BorderPane implements AutoCloseable {
     private final SteamWebApi api;
     private final ExecutorService requests = Executors.newSingleThreadExecutor(
@@ -53,28 +59,25 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Label profileName = new Label();
     private final Label gameCount = new Label("0");
     private final AchievementEditor editor;
+    private final Provider<GameCell> cells;
     private final Label sidebarEmptyMessage = new Label("Connect your library to see your games.");
     private final TextField search = new TextField();
     private final ListView<Game> gameList = new ListView<>();
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
     private final StackPane screens = new StackPane();
-    private final VBox connectionScreen;
-    private final VBox libraryScreen;
+    private final VBox connectionScreen = connectionScreen();
     private SteamLibrary library;
     private Game selectedGame;
     private Task<SteamLibrary> currentTask;
     private String sessionKey;
     private String sessionProfile;
 
-    public LibraryView(final SteamWebApi api) {
-        this.api = api;
-        editor = new AchievementEditor(api);
+    @Inject
+    private void initialize() {
         getStyleClass().add("app-root");
         setLeft(sidebar());
         getLeft().disableProperty().bind(editor.committingProperty());
-        connectionScreen = connectionScreen();
-        libraryScreen = libraryScreen();
-        screens.getChildren().addAll(connectionScreen, libraryScreen);
+        screens.getChildren().addAll(connectionScreen, editor);
         showLibrary(false);
 
         final var workspace = new VBox(0, screens);
@@ -124,7 +127,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
         gameList.getStyleClass().add("sidebar-game-list");
         gameList.setFixedCellSize(52);
-        gameList.setCellFactory((final var view) -> new GameCell(this));
+        gameList.setCellFactory((final var view) -> cells.get());
         sidebarEmptyMessage.getStyleClass().add("sidebar-empty");
         sidebarEmptyMessage.setWrapText(true);
         sidebarEmptyMessage.setMaxWidth(230);
@@ -206,10 +209,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         page.setAlignment(Pos.TOP_CENTER);
         page.getStyleClass().add("connection-page");
         return page;
-    }
-
-    private VBox libraryScreen() {
-        return editor;
     }
 
     private void selectGame(final Game game) {
@@ -344,8 +343,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void showLibrary(final boolean value) {
         connectionScreen.setVisible(!value);
         connectionScreen.setManaged(!value);
-        libraryScreen.setVisible(value);
-        libraryScreen.setManaged(value);
+        editor.setVisible(value);
+        editor.setManaged(value);
     }
 
     public Image iconFor(final Game game) {
