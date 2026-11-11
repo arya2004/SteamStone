@@ -67,6 +67,14 @@ def install_native_files(stage, system):
         raise SystemExit("JavaFX native files are missing from this platform's dependencies.")
 
 
+def packaging_icon(system):
+    extension = {"Windows": ".ico", "Darwin": ".icns", "Linux": ".png"}[system]
+    icon = ROOT / "packaging/icons" / f"steamstone{extension}"
+    if not icon.is_file():
+        raise SystemExit(f"Missing launcher icon: {icon}. Run scripts/generate_icons.py after updating the master PNG.")
+    return icon
+
+
 def windows_installer(jpackage, image, version, destination):
     """Create a normal per-user setup wizard from the already checked app image."""
     destination.mkdir(parents=True, exist_ok=True)
@@ -76,6 +84,7 @@ def windows_installer(jpackage, image, version, destination):
         run([jpackage, "--type", "exe", "--name", "SteamStone", "--app-version", version,
              "--vendor", "SteamStone", "--description", "Steam achievement editor",
              "--app-image", image, "--dest", temporary,
+             "--icon", packaging_icon("Windows"),
              "--license-file", ROOT / "LICENSE.md",
              "--win-per-user-install", "--win-dir-chooser", "--win-menu",
              "--win-menu-group", "SteamStone", "--win-shortcut", "--win-shortcut-prompt",
@@ -172,6 +181,7 @@ def main():
         bundle_version = "1." + version.split(".", 1)[1]
     command = [jpackage, "--type", "app-image", "--name", "SteamStone", "--app-version", bundle_version,
                "--vendor", "SteamStone", "--input", stage, "--main-jar", "steamstone.jar",
+               "--icon", packaging_icon(system),
                "--main-class", "steamstone.Main", "--dest", dist,
                "--add-launcher", f"SteamStoneWorker={worker_properties}",
                "--java-options", "--module-path=$APPDIR/lib", "--java-options", "--add-modules=javafx.controls",

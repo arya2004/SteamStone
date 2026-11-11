@@ -19,10 +19,6 @@
     -fx-border-width: 0 1 0 0;
 }
 
-.stone-logo {
-    -fx-fill: #66c0f4;
-}
-
 .brand-name {
     -fx-font-size: 14px;
     -fx-font-weight: bold;

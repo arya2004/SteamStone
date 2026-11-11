@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import steamstone.inject.SteamStoneInjector;
+import steamstone.ui.AppIcon;
 import steamstone.ui.library.LibraryView;
 
 public final class SteamStoneApp extends Application {
@@ -15,6 +16,7 @@ public final class SteamStoneApp extends Application {
         final var scene = new Scene(libraryView, 1180, 800);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         stage.setTitle("SteamStone");
+        AppIcon.apply(stage);
         stage.setMinWidth(940);
         stage.setMinHeight(700);
         stage.setScene(scene);

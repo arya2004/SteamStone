@@ -31,6 +31,9 @@ class WindowsDownloadsTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / "target").mkdir()
+        self.icon = self.root / "packaging/icons/steamstone.ico"
+        self.icon.parent.mkdir(parents=True)
+        self.icon.write_bytes(b"\x00\x00\x01\x00fixture icon")
         self.image = self.root / "dist with spaces" / "SteamStone"
         for name, contents in IMAGE_FILES.items():
             destination = self.image / name
@@ -55,6 +58,7 @@ class WindowsDownloadsTest(unittest.TestCase):
         command = self.commands[0]
         self.assertEqual(self.image, command[command.index("--app-image") + 1])
         self.assertEqual("exe", command[command.index("--type") + 1])
+        self.assertEqual(self.icon, command[command.index("--icon") + 1])
         self.assertEqual(package.WINDOWS_UPGRADE_UUID, command[command.index("--win-upgrade-uuid") + 1])
         self.assertIn("--win-per-user-install", command)
         with zipfile.ZipFile(portable) as contents:
@@ -88,6 +92,23 @@ class WindowsDownloadsTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "invalid Windows executable"):
                 package.windows_downloads("jpackage.exe", self.image, VERSION, self.releases)
         self.assertEqual([], list(self.releases.iterdir()))
+
+
+class PackagingIconTest(unittest.TestCase):
+    def test_committed_icons_have_platform_specific_formats(self):
+        for system, extension, signature in (
+                ("Windows", ".ico", b"\x00\x00\x01\x00"),
+                ("Darwin", ".icns", b"icns"),
+                ("Linux", ".png", b"\x89PNG\r\n\x1a\n")):
+            with self.subTest(system=system):
+                icon = package.packaging_icon(system)
+                self.assertEqual(extension, icon.suffix)
+                self.assertTrue(icon.read_bytes().startswith(signature))
+
+    def test_missing_icon_fails_with_regeneration_instructions(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(package, "ROOT", Path(directory)):
+            with self.assertRaisesRegex(SystemExit, "generate_icons.py"):
+                package.packaging_icon("Windows")
 
 
 if __name__ == "__main__":

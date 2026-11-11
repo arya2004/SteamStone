@@ -15,6 +15,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.PixelFormat;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +28,7 @@ import steamstone.exception.StoneException;
 import steamstone.inject.SteamStoneInjector;
 import steamstone.model.Game;
 import steamstone.model.achievement.Achievement;
+import steamstone.ui.AppIcon;
 import steamstone.ui.library.LibraryView;
 
 public final class CheckApplication extends Application {
@@ -44,6 +46,10 @@ public final class CheckApplication extends Application {
             final var scene = new Scene(view, 1180, 800);
             scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
             stage.setTitle("SteamStone — UI verification");
+            AppIcon.apply(stage);
+            if (stage.getIcons().isEmpty() || stage.getIcons().stream().anyMatch((final var icon) -> icon.isError())) {
+                throw new StoneException("The window icon did not load.");
+            }
             stage.setScene(scene);
             stage.show();
             final var initial = new PauseTransition(Duration.seconds(1));

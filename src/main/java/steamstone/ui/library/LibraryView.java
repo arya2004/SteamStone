@@ -12,13 +12,13 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Polygon;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 
@@ -37,6 +37,7 @@ import steamstone.exception.StoneException;
 import steamstone.model.Game;
 import steamstone.model.SteamLibrary;
 import steamstone.steam.SteamWebApi;
+import steamstone.ui.AppIcon;
 import steamstone.ui.achievement.AchievementEditor;
 import steamstone.ui.task.StoneTask;
 
@@ -108,8 +109,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private Node sidebar() {
-        final var stone = new Polygon(15, 0, 30, 10, 26, 30, 10, 34, 0, 20, 3, 6);
-        stone.getStyleClass().add("stone-logo");
+        final var stone = new ImageView(AppIcon.load(40));
+        stone.setFitWidth(40);
+        stone.setFitHeight(40);
+        stone.setPreserveRatio(true);
+        stone.setAccessibleText("SteamStone logo");
         final var brand = new HBox(12, stone, new VBox(4,
                 label("STEAMSTONE", "brand-name"), label("Your achievement workspace.", "brand-caption")));
         brand.setAlignment(Pos.CENTER_LEFT);
