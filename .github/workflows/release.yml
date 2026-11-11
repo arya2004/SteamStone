@@ -56,6 +56,15 @@ jobs:
           else
             python3 scripts/package.py "${args[@]}"
           fi
+      - name: Check Windows installer download
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem target/releases/*-windows-x64-setup.exe)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows setup EXE.' }
+          if (Get-ChildItem target/releases/*-windows-x64.zip -ErrorAction SilentlyContinue) {
+            throw 'Windows releases must contain the setup EXE instead of a ZIP.'
+          }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.asset }}

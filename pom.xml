@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>steamstone</groupId>
   <artifactId>steamstone</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <name>SteamStone</name>
   <description>A desktop Steam achievement editor.</description>
   <url>https://github.com/arya2004/SteamStone</url>
@@ -16,10 +16,11 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <javafx.version>25.0.5</javafx.version>
     <jackson.version>2.23.0</jackson.version>
+    <steamworks.version>1.10.0</steamworks.version>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>com.code-disaster.steamworks4j</groupId><artifactId>steamworks4j</artifactId><version>1.10.0</version>
+      <groupId>com.code-disaster.steamworks4j</groupId><artifactId>steamworks4j</artifactId><version>${steamworks.version}</version>
     </dependency>
     <dependency>
       <groupId>org.openjfx</groupId><artifactId>javafx-controls</artifactId><version>${javafx.version}</version>
@@ -51,6 +52,18 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version>
         <executions>
+          <execution>
+            <id>prepare-steam-natives</id><phase>generate-resources</phase><goals><goal>unpack</goal></goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>com.code-disaster.steamworks4j</groupId><artifactId>steamworks4j</artifactId><version>${steamworks.version}</version>
+                  <outputDirectory>${project.build.directory}/native</outputDirectory>
+                  <includes>libsteam_api.dylib,libsteamworks4j.dylib,libsteam_api.so,libsteamworks4j.so,steam_api64.dll,steamworks4j64.dll</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
           <execution>
             <id>runtime-libraries</id><phase>package</phase><goals><goal>copy-dependencies</goal></goals>
             <configuration><includeScope>runtime</includeScope><outputDirectory>${project.build.directory}/lib</outputDirectory></configuration>

@@ -50,7 +50,9 @@ Build on the target OS with its matching JDK 25. Select that JDK using `JAVA_HOM
 python3 scripts/package.py
 ```
 
-On Windows use `python scripts/package.py`. The script runs the tests, creates an app image in `target/dist/`, checks the bundled worker, and writes an archive plus SHA-256 checksum to `target/releases/`. Java is bundled, so users need no JDK. A graphical Linux desktop needs GTK 3. The helper `bash scripts/package-macos.sh` selects your Mac JDK before running the same packager.
+On Windows use `python scripts/package.py` and install **WiX Toolset 3.14.x** on the build machine. The script finds its `candle.exe` and `light.exe` through PATH, `WIX`, or the standard Program Files location. The Windows 2025 GitHub runner already includes WiX. End users do not need WiX.
+
+The script runs the tests, creates an app image in `target/dist/`, and checks the bundled worker. It then writes a single **Windows setup EXE**, or the existing Mac/Linux archive, plus a SHA-256 checksum to `target/releases/`. Windows uses the standard `jpackage --type exe` wizard with per-user installation, a directory chooser, optional shortcuts, and uninstall support. It installs the checked app image and bundled runtime normally; no portable self-extracting launcher is used. Keep `WINDOWS_UPGRADE_UUID` unchanged so later installers recognize the same app. Maven prepares Steam native libraries under `target/native`; the packager installs the matching files and JavaFX native libraries in their normal on-disk locations. Packaged apps load these installed files rather than extracting them from JARs at runtime. Java is bundled, so users need no JDK. A graphical Linux desktop needs GTK 3. The helper `bash scripts/package-macos.sh` selects your Mac JDK before running the same packager.
 
 If `target/dist/SteamStone.app` or `target/dist/SteamStone` already exists, move it aside or choose another destination with `--output target/another-build`. After a successful build, `--skip-build` avoids repeating Maven checks. Never run `clean` if you want to keep existing files under `target/`.
 

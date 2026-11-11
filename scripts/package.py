@@ -11,12 +11,84 @@ import subprocess
 import tarfile
 import tempfile
 import xml.etree.ElementTree as ET
+import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
+# Keep this stable so later Windows installers recognize the existing installation.
+WINDOWS_UPGRADE_UUID = "b7b58994-b292-571d-af9f-ec047c0e95af"
 
 
 def run(command, **kwargs):
     subprocess.run([str(value) for value in command], check=True, **kwargs)
+
+
+def ensure_windows_wix():
+    """jpackage's standard Windows installer backend needs WiX 3.x on the build host."""
+    if shutil.which("candle.exe") and shutil.which("light.exe"):
+        return
+    candidates = []
+    if os.environ.get("WIX"):
+        candidates.append(Path(os.environ["WIX"]) / "bin")
+    for variable in ("ProgramFiles(x86)", "ProgramFiles"):
+        if os.environ.get(variable):
+            candidates.extend(Path(os.environ[variable]).glob("WiX Toolset v3.*/bin"))
+    for directory in candidates:
+        if (directory / "candle.exe").is_file() and (directory / "light.exe").is_file():
+            os.environ["PATH"] = str(directory) + os.pathsep + os.environ.get("PATH", "")
+            return
+    raise SystemExit("Windows installer builds require WiX Toolset 3.14.x (candle.exe and light.exe). "
+                     "Install it on the build machine and add its bin directory to PATH.")
+
+
+def install_native_files(stage, system):
+    """Prepare native files at build time, using the libraries' standard on-disk layouts."""
+    names = {"Windows": ("steam_api64.dll", "steamworks4j64.dll"),
+             "Darwin": ("libsteam_api.dylib", "libsteamworks4j.dylib"),
+             "Linux": ("libsteam_api.so", "libsteamworks4j.so")}[system]
+    (stage / "native").mkdir()
+    for name in names:
+        source = ROOT / "target/native" / name
+        if not source.is_file():
+            raise SystemExit("Steam native files are missing. Run Maven verify before packaging.")
+        shutil.copy2(source, stage / "native" / name)
+    # This is JavaFX's standard native-library layout next to its modular JARs.
+    # Installing these files prevents JavaFX from extracting resources into a user cache.
+    javafx_directory = stage / ("bin" if system == "Windows" else "lib")
+    javafx_directory.mkdir(exist_ok=True)
+    suffix = {"Windows": ".dll", "Darwin": ".dylib", "Linux": ".so"}[system]
+    count = 0
+    for jar in (stage / "lib").glob("javafx-*.jar"):
+        with zipfile.ZipFile(jar) as contents:
+            for entry in contents.infolist():
+                if not entry.is_dir() and entry.filename.endswith(suffix):
+                    (javafx_directory / Path(entry.filename).name).write_bytes(contents.read(entry))
+                    count += 1
+    if count == 0:
+        raise SystemExit("JavaFX native files are missing from this platform's dependencies.")
+
+
+def windows_installer(jpackage, image, version, destination):
+    """Create a normal per-user setup wizard from the already checked app image."""
+    destination.mkdir(parents=True, exist_ok=True)
+    installer = destination / f"SteamStone-{version}-windows-x64-setup.exe"
+    # Use a fresh build directory so an older installer cannot be mistaken for this build's output.
+    with tempfile.TemporaryDirectory(prefix="steamstone-installer-", dir=ROOT / "target") as temporary:
+        run([jpackage, "--type", "exe", "--name", "SteamStone", "--app-version", version,
+             "--vendor", "SteamStone", "--description", "Steam achievement editor",
+             "--app-image", image, "--dest", temporary,
+             "--license-file", ROOT / "LICENSE.md",
+             "--win-per-user-install", "--win-dir-chooser", "--win-menu",
+             "--win-menu-group", "SteamStone", "--win-shortcut", "--win-shortcut-prompt",
+             "--win-upgrade-uuid", WINDOWS_UPGRADE_UUID,
+             "--about-url", "https://github.com/arya2004/SteamStone"])
+        built = list(Path(temporary).glob("*.exe"))
+        if len(built) != 1:
+            raise SystemExit("jpackage did not produce exactly one Windows setup executable.")
+        with built[0].open("rb") as source:
+            if source.read(2) != b"MZ":
+                raise SystemExit("jpackage returned an invalid Windows executable.")
+        shutil.copy2(built[0], installer)
+    return installer
 
 
 def main():
@@ -53,6 +125,8 @@ def main():
     image = dist / ("SteamStone.app" if system == "Darwin" else "SteamStone")
     if image.exists():
         raise SystemExit(f"{image} exists. Move it aside or choose --output before packaging again.")
+    if system == "Windows":
+        ensure_windows_wix()
     if not args.skip_build:
         wrapper = ["cmd.exe", "/c", "mvnw.cmd"] if system == "Windows" else ["./mvnw"]
         run([*wrapper, "-B", "-ntp", "verify"])
@@ -66,12 +140,14 @@ def main():
     shutil.copy2(jar, stage)
     for dependency in (ROOT / "target/lib").glob("*.jar"):
         shutil.copy2(dependency, stage / "lib")
+    install_native_files(stage, system)
     for name in ("LICENSE.md", "README.md"):
         shutil.copy2(ROOT / name, stage)
     shutil.copytree(ROOT / "licenses", stage / "licenses")
     worker_properties = ROOT / "target/worker-launcher.properties"
     worker_properties.write_text("main-class=steamstone.steam.nativeapi.NativeWorker\n"
-                                 "java-options=--enable-native-access=ALL-UNNAMED\n", encoding="utf-8")
+                                 "java-options=--enable-native-access=ALL-UNNAMED\n"
+                                 "win-menu=false\nwin-shortcut=false\n", encoding="utf-8")
     bundle_version = version
     if system == "Darwin" and version.split(".")[0] == "0":
         bundle_version = "1." + version.split(".", 1)[1]
@@ -98,7 +174,10 @@ def main():
         archive = Path(str(base) + ".zip")
         run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", image, archive])
     elif system == "Windows":
-        archive = Path(shutil.make_archive(str(base), "zip", root_dir=dist, base_dir=image.name))
+        archive = windows_installer(jpackage, image, version, releases)
+        # Stop publishing the previous Windows ZIP if this directory was reused for the same version.
+        for old in (Path(str(base) + ".zip"), Path(str(base) + ".zip.sha256")):
+            old.unlink(missing_ok=True)
     else:
         archive = Path(str(base) + ".tar.gz")
         with tarfile.open(archive, "w:gz") as output:

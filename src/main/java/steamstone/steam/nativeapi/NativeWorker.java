@@ -10,7 +10,7 @@ import static steamstone.steam.nativeapi.NativeProtocol.*;
 public final class NativeWorker {
     public static void main(String[] args) throws Exception {
         if (args.length == 1 && args[0].equals("--check-runtime")) {
-            var loader = new SteamNativeLibraries(Path.of(".").toAbsolutePath());
+            var loader = new SteamNativeLibraries();
             SteamAPI.loadLibraries(loader);
             try (var arena = java.lang.foreign.Arena.ofConfined()) {
                 var symbols = java.lang.foreign.SymbolLookup.libraryLookup(loader.path("steam_api"), arena);
@@ -41,7 +41,7 @@ public final class NativeWorker {
         SteamUtils utils = null;
         SteamUserStats stats = null;
         try {
-            var loader = new SteamNativeLibraries(Path.of(".").toAbsolutePath());
+            var loader = new SteamNativeLibraries();
             SteamAPI.loadLibraries(loader);
             var result = SteamAPI.initEx();
             if (result != SteamAPI.InitResult.OK) return new Response(request.appId(), request.steamId(), Status.REJECTED,

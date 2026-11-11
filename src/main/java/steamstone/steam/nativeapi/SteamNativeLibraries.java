@@ -2,13 +2,21 @@ package steamstone.steam.nativeapi;
 
 import com.codedisaster.steamworks.SteamLibraryLoader;
 import java.nio.file.*;
-import java.io.IOException;
 import java.util.Locale;
 
-/** Extract only the pinned dependency's matching binaries into this worker's private directory. */
+/** Load native files prepared at build/install time; never extract libraries at application startup. */
 final class SteamNativeLibraries implements SteamLibraryLoader {
     private final Path directory;
-    SteamNativeLibraries(Path directory) { this.directory = directory; }
+    SteamNativeLibraries() {
+        try {
+            Path application = Path.of(SteamNativeLibraries.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+            // Development: target/classes -> target/native. Installed: app/steamstone.jar -> app/native.
+            directory = application.getParent().resolve("native");
+        } catch (java.net.URISyntaxException ex) {
+            throw new IllegalStateException("Could not locate the installed Steam libraries.", ex);
+        }
+    }
     Path path(String name) {
         String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
         String arch = System.getProperty("os.arch");
@@ -21,11 +29,10 @@ final class SteamNativeLibraries implements SteamLibraryLoader {
     }
     @Override public boolean loadLibrary(String name) {
         Path destination = path(name);
-        try (var input = SteamLibraryLoader.class.getResourceAsStream("/" + destination.getFileName())) {
-            if (input == null) throw new IOException("Missing bundled Steam library.");
-            Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
-            System.load(destination.toAbsolutePath().toString());
-            return true;
-        } catch (IOException ex) { throw new IllegalStateException("Could not extract the bundled Steam runtime.", ex); }
+        if (!Files.isRegularFile(destination)) {
+            throw new IllegalStateException("Steam native libraries are missing. Rebuild the project or reinstall SteamStone.");
+        }
+        System.load(destination.toAbsolutePath().toString());
+        return true;
     }
 }
