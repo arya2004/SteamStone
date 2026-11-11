@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit;
 import steamstone.exception.StoneException;
 
 public final class WorkerProcess implements AutoCloseable {
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
+
     private final Process process;
 
     public WorkerProcess(final ProcessBuilder builder) {
@@ -33,7 +35,7 @@ public final class WorkerProcess implements AutoCloseable {
     public void close() {
         if (process.isAlive()) {
             process.destroyForcibly();
-            if (!await(5)) {
+            if (!await(SHUTDOWN_TIMEOUT_SECONDS)) {
                 throw new StoneException("The Steam worker did not stop. Changes may still sync.");
             }
         }

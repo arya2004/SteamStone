@@ -23,8 +23,6 @@ import steamstone.steam.nativeapi.protocol.Status;
  * Explicit opt-in only: unlock one achievement and restore the complete baseline.
  */
 public final class NativeLiveWriteCheck {
-    private NativeLiveWriteCheck() {
-    }
 
     public static void main(final String[] args) {
         if (args.length != 1 || !args[0].equals("--unlock-and-restore-one-locked-requiem-achievement")) {

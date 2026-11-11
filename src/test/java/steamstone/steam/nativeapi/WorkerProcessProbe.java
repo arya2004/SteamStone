@@ -6,8 +6,6 @@ import steamstone.exception.StoneException;
  * Credential-free child process used to verify worker cancellation and cleanup.
  */
 public final class WorkerProcessProbe {
-    private WorkerProcessProbe() {
-    }
 
     public static void main(final String[] args) {
         try {

@@ -20,6 +20,12 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
  * Two documented flat C API reads missing from steamworks4j 1.10.0. SDK/runtime version is pinned.
  */
 public final class SteamAttributes implements AutoCloseable {
+    private static final String DESCRIPTION_ATTRIBUTE = "desc";
+    private static final String EMPTY_DESCRIPTION = "";
+    private static final long MAX_DESCRIPTION_BYTES = 65_536;
+    private static final long VALUE_OFFSET = 0;
+    private static final long UNKNOWN_UNLOCK_TIME = 0;
+
     private final Arena arena = Arena.ofConfined();
     private final MemorySegment stats;
     private final MethodHandle attribute, read;
@@ -28,16 +34,16 @@ public final class SteamAttributes implements AutoCloseable {
         try {
             final var symbols = SymbolLookup.libraryLookup(library, arena);
             final var linker = Linker.nativeLinker();
-            final var getter = linker.downcallHandle(symbols.find("SteamAPI_SteamUserStats_v013").orElseThrow(),
+            final var getter = linker.downcallHandle(symbols.find(SteamNativeConstants.USER_STATS_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(ADDRESS));
             stats = (MemorySegment) getter.invokeExact();
             if (stats.equals(MemorySegment.NULL))
                 throw new StoneException("Steam stats interface unavailable.");
             attribute = linker.downcallHandle(
-                    symbols.find("SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute").orElseThrow(),
+                    symbols.find(SteamNativeConstants.ACHIEVEMENT_ATTRIBUTE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
             read = linker.downcallHandle(
-                    symbols.find("SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime").orElseThrow(),
+                    symbols.find(SteamNativeConstants.ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         } catch (final Throwable exception) {
             try (arena) {
@@ -52,11 +58,14 @@ public final class SteamAttributes implements AutoCloseable {
             final var achieved = temporary.allocate(JAVA_BOOLEAN);
             final var time = temporary.allocate(JAVA_INT);
             final var valid = (boolean) read.invokeExact(stats, name, achieved, time);
-            final var pointer = (MemorySegment) attribute.invokeExact(stats, name, temporary.allocateFrom("desc"));
-            final var description = pointer.equals(MemorySegment.NULL) ? "" : pointer.reinterpret(65536).getString(0);
+            final var pointer =
+                    (MemorySegment) attribute.invokeExact(stats, name, temporary.allocateFrom(DESCRIPTION_ATTRIBUTE));
+            final var description = pointer.equals(MemorySegment.NULL) ? EMPTY_DESCRIPTION :
+                    pointer.reinterpret(MAX_DESCRIPTION_BYTES).getString(VALUE_OFFSET);
             return new Entry(!valid ? AchievementState.UNKNOWN
-                    : achieved.get(JAVA_BOOLEAN, 0) ? AchievementState.UNLOCKED : AchievementState.LOCKED,
-                    description, valid ? Integer.toUnsignedLong(time.get(JAVA_INT, 0)) : 0);
+                    : achieved.get(JAVA_BOOLEAN, VALUE_OFFSET) ? AchievementState.UNLOCKED : AchievementState.LOCKED,
+                    description,
+                    valid ? Integer.toUnsignedLong(time.get(JAVA_INT, VALUE_OFFSET)) : UNKNOWN_UNLOCK_TIME);
         } catch (final Throwable ex) {
             throw new StoneException("Steam achievement read failed.", ex);
         }

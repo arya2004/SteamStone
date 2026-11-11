@@ -6,6 +6,12 @@ import lombok.experimental.Accessors;
 @Value
 @Accessors(fluent = true)
 public final class Game {
+    private static final String ICON_HASH_PATTERN = "[a-fA-F0-9]{40}";
+    private static final String ICON_BASE_URI =
+            "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/";
+    private static final String PATH_SEPARATOR = "/";
+    private static final String ICON_EXTENSION = ".jpg";
+
     private final long appId;
     private final String name;
     private final long playtimeMinutes;
@@ -13,9 +19,9 @@ public final class Game {
     private final String iconHash;
 
     public String iconUrl() {
-        if (iconHash == null || !iconHash.matches("[a-fA-F0-9]{40}"))
+        if (iconHash == null || !iconHash.matches(ICON_HASH_PATTERN))
             return null;
-        return "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/"
-                + appId + "/" + iconHash + ".jpg";
+        return ICON_BASE_URI
+                + appId + PATH_SEPARATOR + iconHash + ICON_EXTENSION;
     }
 }

@@ -36,62 +36,109 @@ import steamstone.model.achievement.AchievementState;
  */
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class SteamWebApi {
+    private static final String RESPONSE_KEY = "response";
+    private static final String STEAM_ID_KEY = "steamid";
+    private static final String PLAYERS_KEY = "players";
+    private static final String PERSONA_NAME_KEY = "personaname";
+    private static final String GAME_COUNT_KEY = "game_count";
+    private static final String GAMES_KEY = "games";
+    private static final String APP_ID_KEY = "appid";
+    private static final String NAME_KEY = "name";
+    private static final String PLAYTIME_KEY = "playtime_forever";
+    private static final String LAST_PLAYED_KEY = "rtime_last_played";
+    private static final String ICON_HASH_KEY = "img_icon_url";
+    private static final String GAME_KEY = "game";
+    private static final String GAME_STATS_KEY = "availableGameStats";
+    private static final String ACHIEVEMENTS_KEY = "achievements";
+    private static final String PLAYER_STATS_KEY = "playerstats";
+    private static final String SUCCESS_KEY = "success";
+    private static final String PLAYER_STEAM_ID_KEY = "steamID";
+    private static final String API_NAME_KEY = "apiname";
+    private static final String DISPLAY_NAME_KEY = "displayName";
+    private static final String DESCRIPTION_KEY = "description";
+    private static final String ACHIEVED_KEY = "achieved";
+    private static final String UNLOCK_TIME_KEY = "unlocktime";
+    private static final String ICON_KEY = "icon";
+    private static final String LOCKED_ICON_KEY = "icongray";
+    private static final String OWNED_GAMES_PATH = "IPlayerService/GetOwnedGames/v1/?input_json=";
+    private static final String PLAYER_SUMMARY_PATH = "ISteamUser/GetPlayerSummaries/v2/?steamids=";
+    private static final String VANITY_RESOLUTION_PATH = "ISteamUser/ResolveVanityURL/v1/?vanityurl=";
+    private static final String GAME_SCHEMA_PATH = "ISteamUserStats/GetSchemaForGame/v2/?appid=";
+    private static final String PLAYER_ACHIEVEMENTS_PATH = "ISteamUserStats/GetPlayerAchievements/v1/?appid=";
+    private static final String LANGUAGE_QUERY = "&l=english";
+    private static final String STEAM_ID_QUERY = "&steamid=";
+    private static final String API_KEY_HEADER = "x-webapi-key";
+    private static final String ACCEPT_HEADER = "Accept";
+    private static final String JSON_MEDIA_TYPE = "application/json";
+    private static final String USER_AGENT_HEADER = "User-Agent";
+    private static final String USER_AGENT = "SteamStone/0.1.0";
+    private static final String EMPTY_VALUE = "";
+    private static final String OWNED_GAMES_INPUT =
+            "{\"steamid\":\"%s\",\"include_appinfo\":true,\"include_played_free_games\":true}";
+    private static final int MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
+    private static final int HTTP_OK = 200;
+    private static final int HTTP_UNAUTHORIZED = 401;
+    private static final int HTTP_FORBIDDEN = 403;
+    private static final int HTTP_TOO_MANY_REQUESTS = 429;
+    private static final int UNKNOWN_ACHIEVEMENT_VALUE = -1;
+    private static final int LOCKED_ACHIEVEMENT_VALUE = 0;
+    private static final int UNLOCKED_ACHIEVEMENT_VALUE = 1;
+
     private final HttpClient client;
     private final URI base;
     private final ObjectMapper json = new ObjectMapper();
-    private static final int MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 
     public SteamWebApi() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
-                .followRedirects(HttpClient.Redirect.NEVER).build(), URI.create("https://api.steampowered.com/"));
+        this(HttpClient.newBuilder().connectTimeout(SteamConstants.API_CONNECT_TIMEOUT)
+                .followRedirects(HttpClient.Redirect.NEVER).build(), URI.create(SteamConstants.API_BASE_URI));
     }
 
     public SteamLibrary loadLibrary(final String apiKey, final String profileInput) {
-        final var key = apiKey == null ? "" : apiKey.strip();
-        if (!key.matches("[a-fA-F0-9]{32}")) {
+        final var key = apiKey == null ? EMPTY_VALUE : apiKey.strip();
+        if (!key.matches(SteamConstants.WEB_API_KEY_PATTERN)) {
             throw new StoneException("Enter the 32-character Steam Web API key from steamcommunity.com/dev/apikey.");
         }
         final var profile = SteamProfile.parse(profileInput);
         final var steamId = profile.needsResolution() ? resolveProfile(profile, key) : profile.value();
 
-        final var input = "{\"steamid\":\"" + steamId
-                + "\",\"include_appinfo\":true,\"include_played_free_games\":true}";
-        final var response = get("IPlayerService/GetOwnedGames/v1/?input_json=" + encode(input), key).path("response");
+        final var input = OWNED_GAMES_INPUT.formatted(steamId);
+        final var response = get(OWNED_GAMES_PATH + encode(input), key).path(RESPONSE_KEY);
         final var library = parseLibrary(response, steamId, steamId);
 
         // Optional display data must not hide a valid library snapshot.
         final var playerName = StoneFutures.await(CompletableFuture.completedFuture(steamId)
-                .thenApply((final var id) -> get("ISteamUser/GetPlayerSummaries/v2/?steamids=" + id, key)
-                        .path("response").path("players"))
+                .thenApply((final var id) -> get(PLAYER_SUMMARY_PATH + id, key)
+                        .path(RESPONSE_KEY).path(PLAYERS_KEY))
                 .handle((final var players, final var failure) -> {
                     requireNotInterrupted();
                     if (failure != null || !players.isArray() || players.isEmpty()) {
                         return steamId;
                     }
-                    final var candidate = players.get(0).path("personaname").asText();
+                    final var candidate = players.get(0).path(PERSONA_NAME_KEY).asText();
                     return candidate.isBlank() ? steamId : candidate;
                 }));
         return new SteamLibrary(steamId, playerName, library.games(), library.fetchedAt());
     }
 
     private String resolveProfile(final SteamProfile profile, final String key) {
-        final var result = get("ISteamUser/ResolveVanityURL/v1/?vanityurl=" + encode(profile.value()), key);
-        final var steamId = result.path("response").path("steamid").asText();
-        if (!steamId.matches("[0-9]{17}")) {
+        final var result = get(VANITY_RESOLUTION_PATH + encode(profile.value()), key);
+        final var steamId = result.path(RESPONSE_KEY).path(STEAM_ID_KEY).asText();
+        if (!steamId.matches(SteamConstants.STEAM_ID_PATTERN)) {
             throw new StoneException("That Steam profile could not be found. Check the URL or use your SteamID64.");
         }
         return steamId;
     }
 
     public SteamLibrary parseLibrary(final JsonNode response, final String steamId, final String playerName) {
-        if (!response.isObject() || !response.path("game_count").canConvertToInt()
-                || !response.path("game_count").isIntegralNumber()) {
+        if (!response.isObject() || !response.path(GAME_COUNT_KEY).canConvertToInt()
+                || !response.path(GAME_COUNT_KEY).isIntegralNumber()) {
             throw new StoneException(
                     "Steam did not expose this library. Check the profile and set Game details to Public in Steam " +
                             "privacy settings, then retry.");
         }
-        final var count = response.path("game_count").asInt();
-        final var entries = response.path("games");
+        final var count = response.path(GAME_COUNT_KEY).asInt();
+        final var entries = response.path(GAMES_KEY);
         if (count < 0 || (count > 0 && !entries.isArray())) {
             throw new StoneException("Steam returned an incomplete library. Please try again.");
         }
@@ -99,20 +146,20 @@ public final class SteamWebApi {
         final var seen = new HashSet<Long>();
         if (entries.isArray()) {
             for (final var entry : entries) {
-                final var id = entry.path("appid");
+                final var id = entry.path(APP_ID_KEY);
                 if (!id.isIntegralNumber() || !id.canConvertToLong() || id.asLong() <= 0
-                        || id.asLong() > 0xffffffffL) {
+                        || id.asLong() > SteamConstants.MAX_APP_ID) {
                     throw new StoneException("Steam returned an invalid game entry. Please retry.");
                 }
                 final var appId = id.asLong();
                 if (!seen.add(appId))
                     continue;
-                final var suppliedName = entry.path("name").asText("").strip();
+                final var suppliedName = entry.path(NAME_KEY).asText(EMPTY_VALUE).strip();
                 final var name = suppliedName.isEmpty() ? "App " + appId : suppliedName;
                 games.add(new Game(appId, name,
-                        Math.max(0, entry.path("playtime_forever").asLong()),
-                        Math.max(0, entry.path("rtime_last_played").asLong()),
-                        entry.path("img_icon_url").asText("")));
+                        Math.max(0, entry.path(PLAYTIME_KEY).asLong()),
+                        Math.max(0, entry.path(LAST_PLAYED_KEY).asLong()),
+                        entry.path(ICON_HASH_KEY).asText(EMPTY_VALUE)));
             }
         }
         if (games.size() != count) {
@@ -124,16 +171,17 @@ public final class SteamWebApi {
     }
 
     public AchievementList loadAchievements(final String apiKey, final String steamId, final long appId) {
-        if (apiKey == null || !apiKey.matches("[a-fA-F0-9]{32}") || steamId == null
-                || !steamId.matches("[0-9]{17}") || appId <= 0 || appId > 0xffffffffL) {
+        if (apiKey == null || !apiKey.matches(SteamConstants.WEB_API_KEY_PATTERN) || steamId == null
+                || !steamId.matches(SteamConstants.STEAM_ID_PATTERN) || appId <= 0 ||
+                appId > SteamConstants.MAX_APP_ID) {
             throw new StoneException("A valid account, API key, and game are required.");
         }
         final var schema =
-                get("ISteamUserStats/GetSchemaForGame/v2/?appid=" + appId + "&l=english", apiKey).path("game");
+                get(GAME_SCHEMA_PATH + appId + LANGUAGE_QUERY, apiKey).path(GAME_KEY);
         if (!schema.isObject() || schema.isEmpty()) {
             throw new StoneException("Steam did not provide achievement definitions for this game.");
         }
-        final var definitions = schema.path("availableGameStats").path("achievements");
+        final var definitions = schema.path(GAME_STATS_KEY).path(ACHIEVEMENTS_KEY);
         if (definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty())) {
             return new AchievementList(List.of(), "Steam returned no achievement definitions for this game.");
         }
@@ -141,11 +189,11 @@ public final class SteamWebApi {
             throw new StoneException("Steam returned unexpected achievement definitions.");
 
         final var snapshot = StoneFutures.await(CompletableFuture.completedFuture(steamId)
-                .thenApply((final var id) -> get("ISteamUserStats/GetPlayerAchievements/v1/?appid=" + appId
-                        + "&steamid=" + id + "&l=english", apiKey).path("playerstats"))
+                .thenApply((final var id) -> get(PLAYER_ACHIEVEMENTS_PATH + appId
+                        + STEAM_ID_QUERY + id + LANGUAGE_QUERY, apiKey).path(PLAYER_STATS_KEY))
                 .handle((final var player, final var failure) -> {
                     requireNotInterrupted();
-                    return failure == null ? new PlayerSnapshot(player, "")
+                    return failure == null ? new PlayerSnapshot(player, EMPTY_VALUE)
                             : new PlayerSnapshot(null, "Achievement states are unavailable. Check your profile "
                             + "visibility and reload before editing.");
                 }));
@@ -155,14 +203,14 @@ public final class SteamWebApi {
     public AchievementList combineAchievements(final JsonNode definitions, final JsonNode player, final String steamId,
                                                final String notice) {
         final var states = new HashMap<String, JsonNode>();
-        if (player != null && player.path("success").asBoolean(false)) {
-            final var returnedId = player.path("steamID").asText(steamId);
+        if (player != null && player.path(SUCCESS_KEY).asBoolean(false)) {
+            final var returnedId = player.path(PLAYER_STEAM_ID_KEY).asText(steamId);
             if (!returnedId.equals(steamId))
                 throw new StoneException("Steam returned achievement data for a different account.");
-            final var entries = player.path("achievements");
+            final var entries = player.path(ACHIEVEMENTS_KEY);
             if (entries.isArray()) {
                 for (final var entry : entries) {
-                    final var name = entry.path("apiname").asText();
+                    final var name = entry.path(API_NAME_KEY).asText();
                     if (!name.isBlank() && states.put(name, entry) != null) {
                         throw new StoneException("Steam returned duplicate achievement states. Please retry.");
                     }
@@ -172,26 +220,27 @@ public final class SteamWebApi {
         final var result = new ArrayList<Achievement>();
         final var names = new HashSet<String>();
         for (final var definition : definitions) {
-            final var id = definition.path("name").asText();
+            final var id = definition.path(NAME_KEY).asText();
             if (id.isBlank() || !names.add(id))
                 throw new StoneException("Steam returned invalid achievement identifiers.");
-            final var suppliedName = definition.path("displayName").asText(id);
+            final var suppliedName = definition.path(DISPLAY_NAME_KEY).asText(id);
             final var name = suppliedName.isBlank() ? id : suppliedName;
             final var state = states.get(id);
-            final var suppliedDescription = definition.path("description").asText("");
+            final var suppliedDescription = definition.path(DESCRIPTION_KEY).asText(EMPTY_VALUE);
             final var description = suppliedDescription.isBlank() && state != null
-                    ? state.path("description").asText("") : suppliedDescription;
-            final var achieved = state != null && state.path("achieved").isIntegralNumber()
-                    ? state.path("achieved").asInt(-1) : -1;
+                    ? state.path(DESCRIPTION_KEY).asText(EMPTY_VALUE) : suppliedDescription;
+            final var achieved = state != null && state.path(ACHIEVED_KEY).isIntegralNumber()
+                    ? state.path(ACHIEVED_KEY).asInt(UNKNOWN_ACHIEVEMENT_VALUE) : UNKNOWN_ACHIEVEMENT_VALUE;
             final var status = switch (achieved) {
-                case 0 -> AchievementState.LOCKED;
-                case 1 -> AchievementState.UNLOCKED;
+                case LOCKED_ACHIEVEMENT_VALUE -> AchievementState.LOCKED;
+                case UNLOCKED_ACHIEVEMENT_VALUE -> AchievementState.UNLOCKED;
                 default -> AchievementState.UNKNOWN;
             };
             final var time = status == AchievementState.UNLOCKED
-                    ? Math.max(0, state.path("unlocktime").asLong()) : 0L;
+                    ? Math.max(0, state.path(UNLOCK_TIME_KEY).asLong()) : 0L;
             result.add(new Achievement(id, name, description, status, time,
-                    definition.path("icon").asText(""), definition.path("icongray").asText("")));
+                    definition.path(ICON_KEY).asText(EMPTY_VALUE),
+                    definition.path(LOCKED_ICON_KEY).asText(EMPTY_VALUE)));
         }
         final var unknown =
                 result.stream().filter((final var item) -> item.state() == AchievementState.UNKNOWN).count();
@@ -209,22 +258,22 @@ public final class SteamWebApi {
 
     private JsonNode get(final String path, final String apiKey) {
         final var request = HttpRequest.newBuilder(base.resolve(path))
-                .timeout(Duration.ofSeconds(20))
-                .header("x-webapi-key", apiKey)
-                .header("Accept", "application/json")
-                .header("User-Agent", "SteamStone/0.1.0")
+                .timeout(REQUEST_TIMEOUT)
+                .header(API_KEY_HEADER, apiKey)
+                .header(ACCEPT_HEADER, JSON_MEDIA_TYPE)
+                .header(USER_AGENT_HEADER, USER_AGENT)
                 .GET().build();
         try {
             // Complete the body within the request timeout, rather than returning an unbounded stream.
             final var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
             final var status = response.statusCode();
-            if (status == 401 || status == 403) {
+            if (status == HTTP_UNAUTHORIZED || status == HTTP_FORBIDDEN) {
                 throw new StoneException(
                         "Steam rejected the request. Check your API key and profile access, then retry.");
             }
-            if (status == 429)
+            if (status == HTTP_TOO_MANY_REQUESTS)
                 throw new StoneException("Steam is rate limiting requests. Wait a little before trying again.");
-            if (status != 200)
+            if (status != HTTP_OK)
                 throw new StoneException("Steam is unavailable (HTTP " + status + "). Please try again later.");
             final var bytes = response.body();
             if (bytes.length > MAX_RESPONSE_BYTES)

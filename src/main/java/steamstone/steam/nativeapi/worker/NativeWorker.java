@@ -1,5 +1,6 @@
 package steamstone.steam.nativeapi.worker;
 
+import steamstone.steam.nativeapi.NativeRuntimeConstants;
 import com.codedisaster.steamworks.SteamAPI;
 import com.codedisaster.steamworks.SteamException;
 import com.codedisaster.steamworks.SteamNativeHandle;
@@ -10,7 +11,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.SymbolLookup;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,20 +25,23 @@ import steamstone.steam.nativeapi.protocol.Status;
  * One game/account per process. Never initializes Steam in the JavaFX process.
  */
 public final class NativeWorker {
-    private NativeWorker() {
-    }
+    private static final Duration INITIAL_STATS_TIMEOUT = Duration.ofSeconds(12);
+
 
     public static void main(final String[] args) {
-        if (args.length == 1 && args[0].equals("--check-runtime")) {
+        if (args.length == NativeRuntimeConstants.CHECK_RUNTIME_ARGUMENT_COUNT &&
+                args[NativeRuntimeConstants.FIRST_ARGUMENT_INDEX].equals(
+                        NativeRuntimeConstants.CHECK_RUNTIME_ARGUMENT)) {
             checkRuntime();
             return;
         }
-        if (args.length != 2) {
+        if (args.length != NativeRuntimeConstants.PROTOCOL_ARGUMENT_COUNT) {
             throw new StoneException("Expected request and response paths.");
         }
         final var json = new ObjectMapper();
         try {
-            final var request = json.readValue(Path.of(args[0]).toFile(), Request.class);
+            final var request =
+                    json.readValue(Path.of(args[NativeRuntimeConstants.FIRST_ARGUMENT_INDEX]).toFile(), Request.class);
             final var response =
                     StoneFutures.await(CompletableFuture.completedFuture(request).thenApply(NativeWorker::run)
                             .exceptionally((final var failure) -> new Response(request.appId(), request.steamId(),
@@ -47,7 +50,7 @@ public final class NativeWorker {
                                             "selected "
                                             + "account, and reload before retrying; changes may still sync.",
                                     Map.of())));
-            json.writeValue(Path.of(args[1]).toFile(), response);
+            json.writeValue(Path.of(args[NativeRuntimeConstants.RESPONSE_ARGUMENT_INDEX]).toFile(), response);
         } catch (final IOException exception) {
             throw new StoneException("Could not read or write the Steam worker protocol files.", exception);
         }
@@ -58,10 +61,8 @@ public final class NativeWorker {
             final var loader = new SteamNativeLibraries();
             SteamAPI.loadLibraries(loader);
             try (final var arena = Arena.ofConfined()) {
-                final var symbols = SymbolLookup.libraryLookup(loader.path("steam_api"), arena);
-                for (final var symbol : List.of("SteamAPI_SteamUserStats_v013",
-                        "SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute",
-                        "SteamAPI_ISteamUserStats_GetAchievementAndUnlockTime")) {
+                final var symbols = SymbolLookup.libraryLookup(loader.path(SteamNativeConstants.LIBRARY_NAME), arena);
+                for (final var symbol : SteamNativeConstants.REQUIRED_SYMBOLS) {
                     if (symbols.find(symbol).isEmpty()) {
                         throw new StoneException("Missing Steam API symbol: " + symbol);
                     }
@@ -84,7 +85,7 @@ public final class NativeWorker {
                                 + "). Keep Steam running and check this game's local Steam availability.", Map.of());
             }
             try (final var session = new NativeSession(request.appId());
-                 final var attributes = new SteamAttributes(loader.path("steam_api"))) {
+                 final var attributes = new SteamAttributes(loader.path(SteamNativeConstants.LIBRARY_NAME))) {
                 final var actualUser = Long.toUnsignedString(
                         SteamNativeHandle.getNativeHandle(session.user().getSteamID()));
                 if (Integer.toUnsignedLong(session.utils().getAppID()) != request.appId()
@@ -94,10 +95,10 @@ public final class NativeWorker {
                             Map.of());
                 }
                 // Since SDK 1.61, Steam preloads current-user stats at initialization.
-                final var deadline = System.nanoTime() + Duration.ofSeconds(12).toNanos();
+                final var deadline = System.nanoTime() + INITIAL_STATS_TIMEOUT.toNanos();
                 while (session.stats().getNumAchievements() == 0 && System.nanoTime() < deadline) {
                     SteamAPI.runCallbacks();
-                    Thread.sleep(50);
+                    Thread.sleep(SteamNativeConstants.CALLBACK_POLL_INTERVAL_MILLIS);
                 }
                 // Drain initial events before a possible StoreStats call.
                 SteamAPI.runCallbacks();

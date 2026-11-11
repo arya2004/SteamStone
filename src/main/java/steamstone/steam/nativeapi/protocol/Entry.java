@@ -13,13 +13,14 @@ import steamstone.model.achievement.AchievementState;
 
 @Value
 @Accessors(fluent = true)
-@AllArgsConstructor(onConstructor_ = @ConstructorProperties({"state", "description", "unlockTime"}))
+@AllArgsConstructor(onConstructor_ = @ConstructorProperties({ProtocolKeys.STATE, ProtocolKeys.DESCRIPTION,
+        ProtocolKeys.UNLOCK_TIME}))
 public final class Entry {
-    @JsonProperty("state")
+    @JsonProperty(ProtocolKeys.STATE)
     private final AchievementState state;
-    @JsonProperty("description")
+    @JsonProperty(ProtocolKeys.DESCRIPTION)
     private final String description;
-    @JsonProperty("unlockTime")
+    @JsonProperty(ProtocolKeys.UNLOCK_TIME)
     private final long unlockTime;
 
 }

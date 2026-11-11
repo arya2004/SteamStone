@@ -13,6 +13,25 @@ import steamstone.exception.StoneException;
 @Value
 @Accessors(fluent = true)
 public final class SteamProfile {
+    private static final String COMMUNITY_HOST = "steamcommunity.com";
+    private static final String WWW_COMMUNITY_HOST = "www.steamcommunity.com";
+    private static final String COMMUNITY_HOST_PREFIX = COMMUNITY_HOST + "/";
+    private static final String WWW_COMMUNITY_HOST_PREFIX = WWW_COMMUNITY_HOST + "/";
+    private static final String HTTPS_SCHEME = "https";
+    private static final String HTTPS_PREFIX = "https://";
+    private static final String SCHEME_SEPARATOR = "://";
+    private static final String TRAILING_SLASH_PATTERN = "/+$";
+    private static final String PATH_SEPARATOR = "/";
+    private static final String EMPTY_VALUE = "";
+    private static final String NUMERIC_PROFILE_PATH = "profiles";
+    private static final String VANITY_PROFILE_PATH = "id";
+    private static final String NUMERIC_INPUT_PATTERN = "[0-9]+";
+    private static final String VANITY_NAME_PATTERN = "[A-Za-z0-9_-]{2,64}";
+    private static final int DEFAULT_PORT = -1;
+    private static final int PROFILE_PATH_PART_COUNT = 3;
+    private static final int PROFILE_KIND_INDEX = 1;
+    private static final int PROFILE_VALUE_INDEX = 2;
+
     private final String value;
     private final boolean needsResolution;
 
@@ -21,12 +40,12 @@ public final class SteamProfile {
             throw new StoneException("Enter your Steam profile URL or 17-digit SteamID64.");
         }
         final var stripped = input.strip();
-        if (stripped.matches("[0-9]{17}")) {
+        if (stripped.matches(SteamConstants.STEAM_ID_PATTERN)) {
             return new SteamProfile(stripped, false);
         }
-        final var value = stripped.startsWith("steamcommunity.com/") || stripped.startsWith("www.steamcommunity.com/")
-                ? "https://" + stripped : stripped;
-        if (value.contains("://")) {
+        final var value = stripped.startsWith(COMMUNITY_HOST_PREFIX) || stripped.startsWith(WWW_COMMUNITY_HOST_PREFIX)
+                ? HTTPS_PREFIX + stripped : stripped;
+        if (value.contains(SCHEME_SEPARATOR)) {
             final URI uri;
             try {
                 uri = URI.create(value);
@@ -34,29 +53,31 @@ public final class SteamProfile {
                 throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.", exception);
             }
             // Never send the API key to a user-provided host.
-            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null || uri.getPort() != -1
-                    || !("steamcommunity.com".equalsIgnoreCase(uri.getHost())
-                    || "www.steamcommunity.com".equalsIgnoreCase(uri.getHost()))) {
+            if (!HTTPS_SCHEME.equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null ||
+                    uri.getPort() != DEFAULT_PORT
+                    || !(COMMUNITY_HOST.equalsIgnoreCase(uri.getHost())
+                    || WWW_COMMUNITY_HOST.equalsIgnoreCase(uri.getHost()))) {
                 throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.");
             }
-            final var parts = uri.getPath().replaceAll("/+$", "").split("/");
-            if (parts.length == 3) {
-                if (parts[1].equals("profiles") && parts[2].matches("[0-9]{17}")) {
-                    return new SteamProfile(parts[2], false);
+            final var parts = uri.getPath().replaceAll(TRAILING_SLASH_PATTERN, EMPTY_VALUE).split(PATH_SEPARATOR);
+            if (parts.length == PROFILE_PATH_PART_COUNT) {
+                if (parts[PROFILE_KIND_INDEX].equals(NUMERIC_PROFILE_PATH) &&
+                        parts[PROFILE_VALUE_INDEX].matches(SteamConstants.STEAM_ID_PATTERN)) {
+                    return new SteamProfile(parts[PROFILE_VALUE_INDEX], false);
                 }
-                if (parts[1].equals("id") && validVanity(parts[2])) {
-                    return new SteamProfile(parts[2], true);
+                if (parts[PROFILE_KIND_INDEX].equals(VANITY_PROFILE_PATH) && validVanity(parts[PROFILE_VALUE_INDEX])) {
+                    return new SteamProfile(parts[PROFILE_VALUE_INDEX], true);
                 }
             }
             throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.");
         }
-        if (validVanity(value) && !value.matches("[0-9]+")) {
+        if (validVanity(value) && !value.matches(NUMERIC_INPUT_PATTERN)) {
             return new SteamProfile(value, true);
         }
         throw new StoneException("Use your profile URL, vanity name, or 17-digit SteamID64.");
     }
 
     private static boolean validVanity(final String value) {
-        return value.matches("[A-Za-z0-9_-]{2,64}");
+        return value.matches(VANITY_NAME_PATTERN);
     }
 }

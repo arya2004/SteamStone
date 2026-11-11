@@ -9,8 +9,6 @@ import steamstone.exception.StoneException;
  * Exposes application failures rather than leaking completion wrappers to callers.
  */
 public final class StoneFutures {
-    private StoneFutures() {
-    }
 
     public static <T> T await(final CompletableFuture<T> future) {
         try {

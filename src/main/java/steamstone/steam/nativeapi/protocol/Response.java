@@ -11,21 +11,23 @@ import lombok.experimental.Accessors;
 @Value
 @Accessors(fluent = true)
 public final class Response {
-    @JsonProperty("appId")
+    @JsonProperty(ProtocolKeys.APP_ID)
     private final long appId;
-    @JsonProperty("steamId")
+    @JsonProperty(ProtocolKeys.STEAM_ID)
     private final String steamId;
-    @JsonProperty("status")
+    @JsonProperty(ProtocolKeys.STATUS)
     private final Status status;
-    @JsonProperty("message")
+    @JsonProperty(ProtocolKeys.MESSAGE)
     private final String message;
-    @JsonProperty("achievements")
+    @JsonProperty(ProtocolKeys.ACHIEVEMENTS)
     private final Map<String, Entry> achievements;
 
     @JsonCreator
-    public Response(@JsonProperty("appId") final long appId, @JsonProperty("steamId") final String steamId,
-                    @JsonProperty("status") final Status status, @JsonProperty("message") final String message,
-                    @JsonProperty("achievements") final Map<String, Entry> achievements) {
+    public Response(@JsonProperty(ProtocolKeys.APP_ID) final long appId,
+                    @JsonProperty(ProtocolKeys.STEAM_ID) final String steamId,
+                    @JsonProperty(ProtocolKeys.STATUS) final Status status,
+                    @JsonProperty(ProtocolKeys.MESSAGE) final String message,
+                    @JsonProperty(ProtocolKeys.ACHIEVEMENTS) final Map<String, Entry> achievements) {
         this.appId = appId;
         this.steamId = steamId;
         this.status = status;

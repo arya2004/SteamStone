@@ -12,8 +12,6 @@ import steamstone.ui.library.LibraryView;
  * Composition root shared by the desktop launcher and the optional UI verification tool.
  */
 public final class SteamStoneInjector {
-    private SteamStoneInjector() {
-    }
 
     public static Injector create() {
         try {

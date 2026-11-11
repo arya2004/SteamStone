@@ -15,6 +15,8 @@ import steamstone.steam.nativeapi.protocol.Entry;
 
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class NativeAchievementStats implements AchievementStats {
+    private static final Duration STORAGE_TIMEOUT = Duration.ofSeconds(25);
+
     private final SteamUserStats stats;
     private final SteamAttributes attributes;
     private final StorageCallback callback;
@@ -36,10 +38,10 @@ public final class NativeAchievementStats implements AchievementStats {
             if (!stats.storeStats()) {
                 return false;
             }
-            final var deadline = System.nanoTime() + Duration.ofSeconds(25).toNanos();
+            final var deadline = System.nanoTime() + STORAGE_TIMEOUT.toNanos();
             while (callback.result() == null && System.nanoTime() < deadline) {
                 SteamAPI.runCallbacks();
-                Thread.sleep(50);
+                Thread.sleep(SteamNativeConstants.CALLBACK_POLL_INTERVAL_MILLIS);
             }
             if (callback.result() == null) {
                 throw new StoneException("Storage callback timed out. Changes may still sync; reload before retrying.");

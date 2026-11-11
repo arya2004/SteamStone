@@ -1,5 +1,6 @@
 package steamstone.inject;
 
+import steamstone.steam.SteamConstants;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 
@@ -7,7 +8,6 @@ import jakarta.inject.Singleton;
 
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.time.Duration;
 
 import steamstone.steam.SteamWebApi;
 import steamstone.steam.nativeapi.NativeSteam;
@@ -29,12 +29,12 @@ public final class SteamStoneModule extends AbstractModule {
     @Provides
     @Singleton
     public HttpClient httpClient() {
-        return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
+        return HttpClient.newBuilder().connectTimeout(SteamConstants.API_CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NEVER).build();
     }
 
     @Provides
     public URI steamApiBase() {
-        return URI.create("https://api.steampowered.com/");
+        return URI.create(SteamConstants.API_BASE_URI);
     }
 }
