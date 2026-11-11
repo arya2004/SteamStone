@@ -1,18 +1,4 @@
-package steamstone.ui;
-
-import javafx.concurrent.Task;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
-import javafx.scene.shape.Polygon;
-import steamstone.model.Game;
-import steamstone.model.SteamLibrary;
-import steamstone.exception.StoneException;
-import steamstone.steam.SteamWebApi;
+package steamstone.ui.library;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +8,32 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.OverrunStyle;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Polygon;
+import steamstone.exception.StoneException;
+import steamstone.model.Game;
+import steamstone.model.SteamLibrary;
+import steamstone.steam.SteamWebApi;
+import steamstone.ui.achievement.AchievementEditor;
+import steamstone.ui.task.StoneTask;
 
 /**
  * Owns this one screen's state. API requests run outside the JavaFX application thread.
@@ -111,7 +123,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
         gameList.getStyleClass().add("sidebar-game-list");
         gameList.setFixedCellSize(52);
-        gameList.setCellFactory(view -> new GameCell());
+        gameList.setCellFactory(view -> new GameCell(this));
         sidebarEmptyMessage.getStyleClass().add("sidebar-empty");
         sidebarEmptyMessage.setWrapText(true);
         sidebarEmptyMessage.setMaxWidth(230);
@@ -219,12 +231,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         if (library != null)
             libraryStatus.setText("Refreshing from Steam… Your current list is still visible.");
 
-        var task = new Task<SteamLibrary>() {
-            @Override
-            protected SteamLibrary call() {
-                return api.loadLibrary(nextKey, nextProfile);
-            }
-        };
+        var task = new StoneTask<>(() -> api.loadLibrary(nextKey, nextProfile));
         currentTask = task;
         task.setOnSucceeded(event -> {
             if (currentTask != task)
@@ -336,7 +343,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         libraryScreen.setManaged(value);
     }
 
-    private Image iconFor(Game game) {
+    Image iconFor(Game game) {
         String url = game.iconUrl();
         if (url == null)
             return null;
@@ -350,50 +357,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         return image;
     }
 
-    private final class GameCell extends ListCell<Game> {
-        private final Label initial = label("", "game-initial");
-        private final ImageView image = new ImageView();
-        private final Label name = label("", "game-name");
-        private final HBox row;
-
-        GameCell() {
-            image.setFitWidth(28);
-            image.setFitHeight(28);
-            var cover = new StackPane(initial, image);
-            cover.getStyleClass().add("game-cover");
-            cover.setMinSize(28, 28);
-            cover.setMaxSize(28, 28);
-            var text = new VBox(name);
-            text.setMinWidth(0);
-            HBox.setHgrow(text, Priority.ALWAYS);
-            row = new HBox(10, cover, text);
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.getStyleClass().add("game-row");
-            name.setMaxWidth(Double.MAX_VALUE);
-            name.setTextOverrun(OverrunStyle.ELLIPSIS);
-            setTooltip(new Tooltip());
-        }
-
-        @Override
-        protected void updateItem(Game game, boolean empty) {
-            super.updateItem(game, empty);
-            if (empty || game == null) {
-                image.setImage(null);
-                getTooltip().setText("");
-                setGraphic(null);
-                setText(null);
-                return;
-            }
-            initial.setText(game.name().substring(0, 1).toUpperCase(Locale.ROOT));
-            image.setImage(iconFor(game));
-            name.setText(game.name());
-            getTooltip().setText(game.name());
-            setGraphic(row);
-            setText(null);
-        }
-    }
-
-    private static Label label(String text, String styleClass) {
+    static Label label(String text, String styleClass) {
         var label = new Label(text);
         label.getStyleClass().add(styleClass);
         return label;

@@ -1,26 +1,43 @@
-package steamstone.ui;
-
-import steamstone.exception.StoneException;
-
-import javafx.concurrent.Task;
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.geometry.Pos;
-import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
-import steamstone.model.*;
-import steamstone.steam.*;
-import steamstone.steam.nativeapi.*;
-
-import static steamstone.steam.nativeapi.NativeProtocol.*;
+package steamstone.ui.achievement;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.concurrent.Task;
+import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.OverrunStyle;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import steamstone.exception.StoneException;
+import steamstone.model.Game;
+import steamstone.model.achievement.Achievement;
+import steamstone.model.achievement.AchievementList;
+import steamstone.model.achievement.AchievementPreview;
+import steamstone.model.achievement.AchievementState;
+import steamstone.steam.SteamWebApi;
+import steamstone.steam.nativeapi.NativeSteam;
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Response;
+import steamstone.steam.nativeapi.protocol.Status;
+import steamstone.ui.task.StoneTask;
 
 /**
  * Stages edits locally and commits through an isolated, account-checked Steam worker.
@@ -40,17 +57,14 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private final Button commit = button("Commit", "commit-preview");
     private final Button reload = button("↻", "reload-achievements");
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
-    private AchievementPreview preview = new AchievementPreview(java.util.List.of());
+    private AchievementPreview preview = new AchievementPreview(List.of());
     private Game game;
     private String key, steamId;
-
-    private record Loaded(AchievementList data, boolean nativeReady) {
-    }
 
     private final NativeSteam nativeSteam = new NativeSteam();
     private final ReadOnlyBooleanWrapper committing = new ReadOnlyBooleanWrapper(false);
     private boolean nativeReady;
-    private Task<Loaded> task;
+    private Task<LoadedAchievements> task;
     private Task<Response> commitTask;
     private String dataNotice = "";
 
@@ -80,7 +94,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         list.getStyleClass().add("achievement-list");
         list.setFixedCellSize(56);
         list.setPlaceholder(empty);
-        list.setCellFactory(view -> new AchievementCell());
+        list.setCellFactory(view -> new AchievementCell(this));
         var body = new VBox(6, notice, list);
         body.getStyleClass().add("achievement-body");
         VBox.setVgrow(list, Priority.ALWAYS);
@@ -108,7 +122,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
 
     public void open(Game next, String apiKey, String account) {
         if (next != null && game != null && next.appId() == game.appId()
-                && java.util.Objects.equals(key, apiKey) && java.util.Objects.equals(steamId, account))
+                && Objects.equals(key, apiKey) && Objects.equals(steamId, account))
             return;
         cancel();
         game = next;
@@ -132,30 +146,32 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         empty.setText("Loading achievements from Steam…");
         final long appId = game.appId();
         final String requestKey = key, account = steamId;
-        var next = new Task<Loaded>() {
-            @Override
-            protected Loaded call() {
-                var web = api.loadAchievements(requestKey, account, appId);
-                if (isCancelled() || web.achievements().isEmpty())
-                    return new Loaded(web, false);
-                try {
-                    var response = nativeSteam.execute(new Request(appId, account,
-                            web.achievements().stream().map(Achievement::id).toList(), java.util.Map.of(),
-                            java.util.Map.of()));
-                    if (response.status() == Status.READ)
-                        return new Loaded(merge(web.achievements(), response, ""), true);
-                    return new Loaded(new AchievementList(web.achievements(), response.message()), false);
-                } catch (StoneException ex) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        throw new StoneException("Achievement loading was cancelled.", ex);
-                    }
-                    return new Loaded(new AchievementList(web.achievements(),
-                            "Native Steam session unavailable. Keep Steam running and sign in to this account; reload" +
-                                    " to enable editing."),
-                            false);
-                }
+        var next = new StoneTask<>(() -> {
+            final var web = api.loadAchievements(requestKey, account, appId);
+            if (Thread.currentThread().isInterrupted()) {
+                throw new StoneException("Achievement loading was cancelled.");
             }
-        };
+            if (web.achievements().isEmpty()) {
+                return new LoadedAchievements(web, false);
+            }
+            return CompletableFuture.completedFuture(web)
+                    .thenApply(data -> nativeSteam.execute(new Request(appId, account,
+                            data.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of())))
+                    .handle((response, failure) -> {
+                        if (Thread.currentThread().isInterrupted()) {
+                            throw new StoneException("Achievement loading was cancelled.", failure);
+                        }
+                        if (failure != null) {
+                            return new LoadedAchievements(new AchievementList(web.achievements(),
+                                    "Native Steam session unavailable. Keep Steam running and sign in to this account; "
+                                            + "reload to enable editing."), false);
+                        }
+                        if (response.status() == Status.READ) {
+                            return new LoadedAchievements(merge(web.achievements(), response, ""), true);
+                        }
+                        return new LoadedAchievements(new AchievementList(web.achievements(), response.message()), false);
+                    }).join();
+        });
         task = next;
         updateControls();
         next.setOnSucceeded(e -> {
@@ -183,16 +199,24 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.submit(next);
     }
 
+    AchievementPreview preview() {
+        return preview;
+    }
+
+    boolean nativeReady() {
+        return nativeReady;
+    }
+
     private void clear() {
         nativeReady = false;
-        preview = new AchievementPreview(java.util.List.of());
+        preview = new AchievementPreview(List.of());
         list.getItems().clear();
         icons.clear();
         dataNotice = "";
         changed();
     }
 
-    private void changed() {
+    void changed() {
         notice.setText(dataNotice);
         list.refresh();
         updateControls();
@@ -200,7 +224,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
 
     private void updateControls() {
         boolean editable = nativeReady && task == null && !committing.get() && preview.achievements().stream()
-                .anyMatch(a -> a.state() != Achievement.State.UNKNOWN);
+                .anyMatch(a -> a.state() != AchievementState.UNKNOWN);
         unlock.setDisable(!editable);
         lock.setDisable(!editable);
         reset.setDisable(!editable || preview.changeCount() == 0);
@@ -238,22 +262,17 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         if (!nativeReady || committing.get() || preview.changeCount() == 0)
             return;
         var desired = preview.changes();
-        var expected = new java.util.LinkedHashMap<String, Boolean>();
+        var expected = new LinkedHashMap<String, Boolean>();
         for (var achievement : preview.achievements()) {
             if (desired.containsKey(achievement.id()))
-                expected.put(achievement.id(), achievement.state() == Achievement.State.UNLOCKED);
+                expected.put(achievement.id(), achievement.state() == AchievementState.UNLOCKED);
         }
         var request = new Request(game.appId(), steamId,
                 preview.achievements().stream().map(Achievement::id).toList(), expected, desired);
         committing.set(true);
         dataNotice = "Saving changes to Steam…";
         changed();
-        var next = new Task<Response>() {
-            @Override
-            protected Response call() {
-                return nativeSteam.execute(request);
-            }
-        };
+        var next = new StoneTask<>(() -> nativeSteam.execute(request));
         commitTask = next;
         next.setOnSucceeded(e -> {
             commitTask = null;
@@ -284,19 +303,19 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.submit(next);
     }
 
-    private static AchievementList merge(java.util.List<Achievement> source, Response response, String notice) {
+    private static AchievementList merge(List<Achievement> source, Response response, String notice) {
         return new AchievementList(source.stream().map(achievement -> {
             var entry = response.achievements().get(achievement.id());
             if (entry == null)
                 return new Achievement(achievement.id(), achievement.name(), achievement.description(),
-                        Achievement.State.UNKNOWN, 0, achievement.icon(), achievement.lockedIcon());
+                        AchievementState.UNKNOWN, 0, achievement.icon(), achievement.lockedIcon());
             String description = entry.description().isBlank() ? achievement.description() : entry.description();
             return new Achievement(achievement.id(), achievement.name(), description, entry.state(), entry.unlockTime(),
                     achievement.icon(), achievement.lockedIcon());
         }).toList(), notice);
     }
 
-    private Image icon(Achievement achievement) {
+    Image icon(Achievement achievement) {
         String url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
         if (url.isBlank())
             return null;
@@ -320,70 +339,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         return image;
     }
 
-    private final class AchievementCell extends ListCell<Achievement> {
-        private final CheckBox check = new CheckBox();
-        private final ImageView image = new ImageView();
-        private final Label name = label("", "achievement-name");
-        private final Label description = label("", "achievement-description");
-        private final Label state = label("", "achievement-state");
-        private final HBox row;
-
-        AchievementCell() {
-            image.setFitWidth(32);
-            image.setFitHeight(32);
-            var cover = new StackPane(image);
-            cover.setMinSize(32, 32);
-            cover.setMaxSize(32, 32);
-            cover.getStyleClass().add("achievement-cover");
-            var text = new VBox(3, name, description);
-            text.setMinWidth(0);
-            name.setMaxWidth(Double.MAX_VALUE);
-            description.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(text, Priority.ALWAYS);
-            row = new HBox(10, check, cover, text, state);
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.getStyleClass().add("achievement-row");
-            check.setOnAction(e -> {
-                if (getItem() != null) {
-                    preview.setUnlocked(getItem(), check.isSelected());
-                    changed();
-                }
-            });
-        }
-
-        @Override
-        protected void updateItem(Achievement achievement, boolean emptyCell) {
-            super.updateItem(achievement, emptyCell);
-            setText(null);
-            row.getStyleClass().removeAll("unlocked-row", "locked-row", "unknown-row", "changed-row");
-            if (emptyCell || achievement == null) {
-                setGraphic(null);
-                image.setImage(null);
-                return;
-            }
-            boolean unknown = achievement.state() == Achievement.State.UNKNOWN;
-            boolean unlocked = preview.isUnlocked(achievement);
-            boolean edited = preview.isChanged(achievement);
-            row.getStyleClass().add(unknown ? "unknown-row" : unlocked ? "unlocked-row" : "locked-row");
-            if (edited)
-                row.getStyleClass().add("changed-row");
-            check.setSelected(unlocked);
-            check.setIndeterminate(unknown);
-            check.setDisable(unknown || !nativeReady || committing.get());
-            check.setAccessibleText("Unlock state: " + achievement.name());
-            image.setImage(icon(achievement));
-            name.setText(achievement.name());
-            description.setText(achievement.description());
-            description.setVisible(!achievement.description().isBlank());
-            description.setManaged(description.isVisible());
-            description.setTooltip(new Tooltip(achievement.description()));
-            name.setTooltip(new Tooltip(achievement.name() + "\n" + achievement.id()));
-            state.setText(unknown ? "UNAVAILABLE" : (edited ? "• " : "") + (unlocked ? "UNLOCKED" : "LOCKED"));
-            setGraphic(row);
-            row.prefWidthProperty().bind(widthProperty().subtract(4));
-        }
-    }
-
     private void cancel() {
         if (task != null)
             task.cancel(true);
@@ -402,7 +357,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         icons.clear();
     }
 
-    private static Label label(String text, String style) {
+    static Label label(String text, String style) {
         var label = new Label(text);
         label.getStyleClass().add(style);
         return label;

@@ -1,7 +1,4 @@
-package steamstone.steam.nativeapi;
-
-import steamstone.steam.nativeapi.NativeProtocol.Entry;
-import steamstone.model.Achievement;
+package steamstone.steam.nativeapi.worker;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
@@ -12,8 +9,8 @@ import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 
 import steamstone.exception.StoneException;
-
-import steamstone.steam.nativeapi.NativeProtocol.Entry;
+import steamstone.model.achievement.AchievementState;
+import steamstone.steam.nativeapi.protocol.Entry;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
@@ -56,8 +53,8 @@ public final class SteamAttributes implements AutoCloseable {
             final var valid = (boolean) read.invokeExact(stats, name, achieved, time);
             final var pointer = (MemorySegment) attribute.invokeExact(stats, name, temporary.allocateFrom("desc"));
             final var description = pointer.equals(MemorySegment.NULL) ? "" : pointer.reinterpret(65536).getString(0);
-            return new Entry(!valid ? Achievement.State.UNKNOWN
-                    : achieved.get(JAVA_BOOLEAN, 0) ? Achievement.State.UNLOCKED : Achievement.State.LOCKED,
+            return new Entry(!valid ? AchievementState.UNKNOWN
+                    : achieved.get(JAVA_BOOLEAN, 0) ? AchievementState.UNLOCKED : AchievementState.LOCKED,
                     description, valid ? Integer.toUnsignedLong(time.get(JAVA_INT, 0)) : 0);
         } catch (final Throwable ex) {
             throw new StoneException("Steam achievement read failed.", ex);

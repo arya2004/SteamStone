@@ -145,7 +145,7 @@ def main():
         shutil.copy2(ROOT / name, stage)
     shutil.copytree(ROOT / "licenses", stage / "licenses")
     worker_properties = ROOT / "target/worker-launcher.properties"
-    worker_properties.write_text("main-class=steamstone.steam.nativeapi.NativeWorker\n"
+    worker_properties.write_text("main-class=steamstone.steam.nativeapi.worker.NativeWorker\n"
                                  "java-options=--enable-native-access=ALL-UNNAMED\n"
                                  "win-menu=false\nwin-shortcut=false\n", encoding="utf-8")
     bundle_version = version

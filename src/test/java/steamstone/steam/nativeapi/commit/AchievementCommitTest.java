@@ -1,50 +1,25 @@
-package steamstone.steam.nativeapi;
+package steamstone.steam.nativeapi.commit;
 
-import steamstone.exception.StoneException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+
 import org.junit.jupiter.api.Test;
-import steamstone.model.Achievement;
+import steamstone.exception.StoneException;
+import steamstone.model.achievement.AchievementState;
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Status;
 
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static steamstone.steam.nativeapi.NativeProtocol.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AchievementCommitTest {
     private static final String ACCOUNT = "76561198000000000";
 
     private Request request(Map<String, Boolean> expected, Map<String, Boolean> desired) {
         return new Request(10, ACCOUNT, List.of("A", "B"), expected, desired);
-    }
-
-    private static final class FakeSteam implements AchievementCommit.Stats {
-        Map<String, Achievement.State> states =
-                new HashMap<>(Map.of("A", Achievement.State.LOCKED, "B", Achievement.State.UNLOCKED));
-        Set<String> reject = new HashSet<>();
-        boolean storageAccepted = true, timeout, ignoreSetters;
-        int setters, stores;
-
-        @Override
-        public Entry read(String id) {
-            return new Entry(states.get(id), "Description", 0);
-        }
-
-        @Override
-        public boolean set(String id, boolean unlocked) {
-            setters++;
-            if (reject.contains(id))
-                return false;
-            if (!ignoreSetters)
-                states.put(id, unlocked ? Achievement.State.UNLOCKED : Achievement.State.LOCKED);
-            return true;
-        }
-
-        @Override
-        public boolean storeAndWait() {
-            stores++;
-            if (timeout)
-                throw new StoneException("Storage timed out.", new java.util.concurrent.TimeoutException());
-            return storageAccepted;
-        }
     }
 
     @Test
@@ -54,7 +29,7 @@ class AchievementCommitTest {
         assertEquals(Status.READ, response.status());
         assertEquals(0, steam.setters);
         assertEquals(0, steam.stores);
-        assertEquals(Achievement.State.LOCKED, response.achievements().get("A").state());
+        assertEquals(AchievementState.LOCKED, response.achievements().get("A").state());
     }
 
     @Test
@@ -66,8 +41,8 @@ class AchievementCommitTest {
         assertEquals(Status.CONFIRMED, response.status());
         assertEquals(2, steam.setters);
         assertEquals(1, steam.stores);
-        assertEquals(Achievement.State.UNLOCKED, response.achievements().get("A").state());
-        assertEquals(Achievement.State.LOCKED, response.achievements().get("B").state());
+        assertEquals(AchievementState.UNLOCKED, response.achievements().get("A").state());
+        assertEquals(AchievementState.LOCKED, response.achievements().get("B").state());
     }
 
     @Test
@@ -84,7 +59,7 @@ class AchievementCommitTest {
     @Test
     void unreadableStateStopsBatchBeforeAnySetter() {
         var steam = new FakeSteam();
-        steam.states.put("A", Achievement.State.UNKNOWN);
+        steam.states.put("A", AchievementState.UNKNOWN);
         var response = new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam);
         assertEquals(Status.REJECTED, response.status());
         assertEquals(0, steam.setters);
@@ -99,8 +74,8 @@ class AchievementCommitTest {
                         steam);
         assertEquals(Status.PARTIAL, response.status());
         assertEquals(1, steam.stores);
-        assertEquals(Achievement.State.UNLOCKED, response.achievements().get("A").state());
-        assertEquals(Achievement.State.UNLOCKED, response.achievements().get("B").state());
+        assertEquals(AchievementState.UNLOCKED, response.achievements().get("A").state());
+        assertEquals(AchievementState.UNLOCKED, response.achievements().get("B").state());
     }
 
     @Test
@@ -120,8 +95,8 @@ class AchievementCommitTest {
                 () -> new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam));
         assertTrue(failure.getMessage().contains("may still sync"));
         assertInstanceOf(StoneException.class, failure.getCause());
-        assertInstanceOf(java.util.concurrent.TimeoutException.class, failure.getCause().getCause());
-        assertEquals(Achievement.State.UNLOCKED, steam.states.get("A"));
+        assertInstanceOf(TimeoutException.class, failure.getCause().getCause());
+        assertEquals(AchievementState.UNLOCKED, steam.states.get("A"));
     }
 
     @Test

@@ -1,4 +1,4 @@
-package steamstone.steam.nativeapi;
+package steamstone.steam.nativeapi.worker;
 
 import com.codedisaster.steamworks.SteamLibraryLoader;
 

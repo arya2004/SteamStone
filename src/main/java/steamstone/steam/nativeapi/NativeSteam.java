@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 import steamstone.exception.StoneException;
-import steamstone.steam.nativeapi.NativeProtocol.Request;
-import steamstone.steam.nativeapi.NativeProtocol.Response;
-import steamstone.steam.nativeapi.NativeProtocol.Status;
-
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Response;
+import steamstone.steam.nativeapi.protocol.Status;
+import steamstone.steam.nativeapi.worker.NativeWorker;
 
 /**
  * Bounded subprocess calls; temp files contain context/edits, never the API key.

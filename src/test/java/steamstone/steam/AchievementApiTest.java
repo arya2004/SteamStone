@@ -1,17 +1,23 @@
 package steamstone.steam;
 
-import steamstone.exception.StoneException;
-
 import com.sun.net.httpserver.HttpServer;
-import org.junit.jupiter.api.*;
-import steamstone.model.Achievement;
 
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import steamstone.exception.StoneException;
+import steamstone.model.achievement.AchievementState;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AchievementApiTest {
     private static final String KEY = "0123456789abcdef0123456789abcdef";
@@ -62,9 +68,9 @@ class AchievementApiTest {
         var result = api.loadAchievements(KEY, ID, 10);
         var first = result.achievements().getFirst();
         assertEquals("First step", first.name());
-        assertEquals(Achievement.State.UNLOCKED, first.state());
+        assertEquals(AchievementState.UNLOCKED, first.state());
         assertEquals(12345, first.unlockTime());
-        assertEquals(Achievement.State.LOCKED, result.achievements().get(1).state());
+        assertEquals(AchievementState.LOCKED, result.achievements().get(1).state());
         assertEquals("", result.achievements().get(1).description());
         assertTrue(result.notice().isBlank());
         assertTrue(credentialsCorrect);
@@ -77,7 +83,7 @@ class AchievementApiTest {
         playerStatus = 403;
         var result = api.loadAchievements(KEY, ID, 10);
         assertEquals(2, result.achievements().size());
-        assertTrue(result.achievements().stream().allMatch(a -> a.state() == Achievement.State.UNKNOWN));
+        assertTrue(result.achievements().stream().allMatch(a -> a.state() == AchievementState.UNKNOWN));
         assertFalse(result.notice().isBlank());
     }
 
@@ -87,7 +93,7 @@ class AchievementApiTest {
                 {"playerstats":{"success":true,"achievements":[{"apiname":"FIRST","achieved":2}]}}
                 """;
         var result = api.loadAchievements(KEY, ID, 10);
-        assertTrue(result.achievements().stream().allMatch(a -> a.state() == Achievement.State.UNKNOWN));
+        assertTrue(result.achievements().stream().allMatch(a -> a.state() == AchievementState.UNKNOWN));
         assertFalse(result.notice().isBlank());
     }
 

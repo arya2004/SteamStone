@@ -1,4 +1,4 @@
-package steamstone.model;
+package steamstone.model.achievement;
 
 import java.util.List;
 

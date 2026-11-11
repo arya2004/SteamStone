@@ -1,16 +1,17 @@
-package steamstone.steam;
-
-import org.junit.jupiter.api.Test;
-import steamstone.model.*;
+package steamstone.model.achievement;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AchievementPreviewTest {
-    private final Achievement locked = new Achievement("A", "Alpha", "", Achievement.State.LOCKED, 0, "", "");
-    private final Achievement unlocked = new Achievement("B", "Beta", "", Achievement.State.UNLOCKED, 123, "", "");
-    private final Achievement unknown = new Achievement("C", "Gamma", "", Achievement.State.UNKNOWN, 0, "", "");
+    private final Achievement locked = new Achievement("A", "Alpha", "", AchievementState.LOCKED, 0, "", "");
+    private final Achievement unlocked = new Achievement("B", "Beta", "", AchievementState.UNLOCKED, 123, "", "");
+    private final Achievement unknown = new Achievement("C", "Gamma", "", AchievementState.UNKNOWN, 0, "", "");
 
     @Test
     void revertingCheckboxRemovesPendingChangeWithoutChangingSteamSnapshot() {
@@ -18,7 +19,7 @@ class AchievementPreviewTest {
         preview.setUnlocked(locked, true);
         assertEquals(1, preview.changeCount());
         assertTrue(preview.isUnlocked(locked));
-        assertEquals(Achievement.State.LOCKED, locked.state());
+        assertEquals(AchievementState.LOCKED, locked.state());
         preview.setUnlocked(locked, false);
         assertEquals(0, preview.changeCount());
     }

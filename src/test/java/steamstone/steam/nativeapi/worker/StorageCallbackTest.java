@@ -1,14 +1,15 @@
-package steamstone.steam.nativeapi;
+package steamstone.steam.nativeapi.worker;
 
-import org.junit.jupiter.api.Test;
 import com.codedisaster.steamworks.SteamResult;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class StorageCallbackTest {
     @Test
     void ignoresEventsBeforeStoreAndForOtherGamesAndKeepsFirstMatchingResult() {
-        var callback = new NativeWorker.StorageCallback(10);
+        var callback = new StorageCallback(10);
         callback.onUserStatsStored(10, SteamResult.OK);
         assertNull(callback.result());
         callback.begin();

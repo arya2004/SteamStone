@@ -1,13 +1,7 @@
 package steamstone.steam;
 
-import steamstone.exception.StoneException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import steamstone.model.Game;
-import steamstone.model.Achievement;
-import steamstone.model.AchievementList;
-import steamstone.model.SteamLibrary;
 
 import java.io.IOException;
 import java.net.URI;
@@ -15,14 +9,23 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+
+import steamstone.exception.StoneException;
+import steamstone.model.Game;
+import steamstone.model.SteamLibrary;
+import steamstone.model.achievement.Achievement;
+import steamstone.model.achievement.AchievementList;
+import steamstone.model.achievement.AchievementState;
 
 /**
  * Read-only, documented Steam Web API. No global catalogs or internal Steam files.
@@ -137,7 +140,7 @@ public final class SteamWebApi {
         }
         JsonNode definitions = schema.path("availableGameStats").path("achievements");
         if (definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty())) {
-            return new AchievementList(java.util.List.of(), "Steam returned no achievement definitions for this game.");
+            return new AchievementList(List.of(), "Steam returned no achievement definitions for this game.");
         }
         if (!definitions.isArray())
             throw new StoneException("Steam returned unexpected achievement definitions.");
@@ -186,18 +189,18 @@ public final class SteamWebApi {
             JsonNode state = states.get(id);
             if (description.isBlank() && state != null)
                 description = state.path("description").asText("");
-            Achievement.State status = Achievement.State.UNKNOWN;
+            AchievementState status = AchievementState.UNKNOWN;
             long time = 0;
             if (state != null && state.path("achieved").isIntegralNumber()) {
                 int achieved = state.path("achieved").asInt(-1);
                 if (achieved == 0)
-                    status = Achievement.State.LOCKED;
+                    status = AchievementState.LOCKED;
                 if (achieved == 1) {
-                    status = Achievement.State.UNLOCKED;
+                    status = AchievementState.UNLOCKED;
                     time = Math.max(0, state.path("unlocktime").asLong());
                 }
             }
-            if (status == Achievement.State.UNKNOWN)
+            if (status == AchievementState.UNKNOWN)
                 unknown++;
             result.add(new Achievement(id, name, description, status, time,
                     definition.path("icon").asText(""), definition.path("icongray").asText("")));
@@ -241,7 +244,7 @@ public final class SteamWebApi {
             }
         } catch (InterruptedException ex) {
             throw new StoneException("The Steam request was interrupted.", ex);
-        } catch (java.net.http.HttpTimeoutException ex) {
+        } catch (HttpTimeoutException ex) {
             throw new StoneException("Steam took too long to respond. Check your connection and retry.", ex);
         } catch (IOException ex) {
             throw new StoneException("Couldn't reach Steam. Check your internet connection and try again.", ex);

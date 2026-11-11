@@ -1,4 +1,4 @@
-package steamstone.model;
+package steamstone.model.achievement;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,13 +32,13 @@ public final class AchievementPreview {
     }
 
     public boolean isUnlocked(Achievement achievement) {
-        return changes.getOrDefault(achievement.id(), achievement.state() == Achievement.State.UNLOCKED);
+        return changes.getOrDefault(achievement.id(), achievement.state() == AchievementState.UNLOCKED);
     }
 
     public void setUnlocked(Achievement achievement, boolean unlocked) {
-        if (achievement.state() == Achievement.State.UNKNOWN || !achievements.contains(achievement))
+        if (achievement.state() == AchievementState.UNKNOWN || !achievements.contains(achievement))
             return;
-        if (unlocked == (achievement.state() == Achievement.State.UNLOCKED))
+        if (unlocked == (achievement.state() == AchievementState.UNLOCKED))
             changes.remove(achievement.id());
         else
             changes.put(achievement.id(), unlocked);

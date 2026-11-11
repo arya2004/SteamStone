@@ -1,36 +1,31 @@
-package steamstone.steam.nativeapi;
-
-import steamstone.exception.StoneException;
-import steamstone.model.Achievement;
+package steamstone.steam.nativeapi.commit;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static steamstone.steam.nativeapi.NativeProtocol.*;
+import steamstone.exception.StoneException;
+import steamstone.model.achievement.AchievementState;
+import steamstone.steam.nativeapi.protocol.Entry;
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Response;
+import steamstone.steam.nativeapi.protocol.Status;
 
 /**
  * No rollback promise: Steam may persist accepted setters even during shutdown.
  */
 public final class AchievementCommit {
-    public interface Stats {
-        Entry read(String id);
 
-        boolean set(String id, boolean unlocked);
-
-        boolean storeAndWait();
-    }
-
-    public Response execute(Request request, Stats stats) {
+    public Response execute(Request request, AchievementStats stats) {
         Map<String, Entry> before = readAll(request, stats);
         if (request.changes().isEmpty())
             return response(request, Status.READ, "", before);
         for (var change : request.changes().entrySet()) {
             var entry = before.get(change.getKey());
-            if (entry.state() == Achievement.State.UNKNOWN) {
+            if (entry.state() == AchievementState.UNKNOWN) {
                 return response(request, Status.REJECTED,
                         "Steam could not read a requested achievement. Reload before editing.", before);
             }
-            if ((entry.state() == Achievement.State.UNLOCKED) != request.expected().get(change.getKey())) {
+            if ((entry.state() == AchievementState.UNLOCKED) != request.expected().get(change.getKey())) {
                 return response(request, Status.CONFLICT,
                         "Steam's state changed since loading. Review the refreshed states and try again.", before);
             }
@@ -58,8 +53,8 @@ public final class AchievementCommit {
         Map<String, Entry> after = readAll(request, stats);
         long matching = request.changes().entrySet().stream().filter(change -> {
             var entry = after.get(change.getKey());
-            return entry.state() != Achievement.State.UNKNOWN
-                    && (entry.state() == Achievement.State.UNLOCKED) == change.getValue();
+            return entry.state() != AchievementState.UNKNOWN
+                    && (entry.state() == AchievementState.UNLOCKED) == change.getValue();
         }).count();
         boolean complete = rejected == 0 && matching == request.changes().size();
         return response(request, complete ? Status.CONFIRMED : Status.PARTIAL,
@@ -68,7 +63,7 @@ public final class AchievementCommit {
                         + " requested states matched readback. Unmatched changes remain pending.", after);
     }
 
-    private Map<String, Entry> readAll(Request request, Stats stats) {
+    private Map<String, Entry> readAll(Request request, AchievementStats stats) {
         var entries = new LinkedHashMap<String, Entry>();
         for (String id : request.ids())
             entries.put(id, stats.read(id));

@@ -4,7 +4,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import steamstone.steam.SteamWebApi;
-import steamstone.ui.LibraryView;
+import steamstone.ui.library.LibraryView;
 
 public final class SteamStoneApp extends Application {
     private LibraryView libraryView;

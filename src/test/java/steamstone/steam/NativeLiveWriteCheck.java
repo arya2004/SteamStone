@@ -1,14 +1,19 @@
 package steamstone.steam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import steamstone.model.Achievement;
-import steamstone.steam.nativeapi.*;
 
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-import static steamstone.steam.nativeapi.NativeProtocol.*;
+import steamstone.model.achievement.Achievement;
+import steamstone.model.achievement.AchievementState;
+import steamstone.steam.nativeapi.NativeSteam;
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Response;
+import steamstone.steam.nativeapi.protocol.Status;
 
 /**
  * Explicit opt-in only: one locked Requiem achievement, then restore the complete baseline.
@@ -34,7 +39,7 @@ public final class NativeLiveWriteCheck {
         var baseline = read(steam, account, ids);
         requireKnown(baseline);
         json.writerWithDefaultPrettyPrinter().writeValue(output.resolve("requiem-before.json").toFile(), baseline);
-        String chosen = ids.stream().filter(id -> baseline.achievements().get(id).state() == Achievement.State.LOCKED)
+        String chosen = ids.stream().filter(id -> baseline.achievements().get(id).state() == AchievementState.LOCKED)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No locked achievements; no write performed."));
         var recovery = new Request(1182900, account, ids, Map.of(chosen, true), Map.of(chosen, false));
@@ -54,7 +59,7 @@ public final class NativeLiveWriteCheck {
             var unlocked = read(steam, account, ids);
             requireKnown(unlocked);
             for (String id : ids) {
-                var expected = id.equals(chosen) ? Achievement.State.UNLOCKED : baseline.achievements().get(id).state();
+                var expected = id.equals(chosen) ? AchievementState.UNLOCKED : baseline.achievements().get(id).state();
                 if (unlocked.achievements().get(id).state() != expected)
                     throw new IllegalStateException("Unexpected state after unlock: " + id);
             }
@@ -71,7 +76,7 @@ public final class NativeLiveWriteCheck {
                             Thread.sleep(10000L * attempt);
                         var current = read(steam, account, ids);
                         requireKnown(current);
-                        boolean unlocked = current.achievements().get(chosen).state() == Achievement.State.UNLOCKED;
+                        boolean unlocked = current.achievements().get(chosen).state() == AchievementState.UNLOCKED;
                         var restored = steam.execute(
                                 new Request(1182900, account, ids, Map.of(chosen, unlocked), Map.of(chosen, false)));
                         json.writerWithDefaultPrettyPrinter()
@@ -90,7 +95,7 @@ public final class NativeLiveWriteCheck {
                     var now = after.achievements().get(id);
                     if (before.state() != now.state())
                         throw new IllegalStateException("RESTORE INCOMPLETE: " + id + "; use the saved baseline.");
-                    if (before.state() == Achievement.State.UNLOCKED && before.unlockTime() != now.unlockTime())
+                    if (before.state() == AchievementState.UNLOCKED && before.unlockTime() != now.unlockTime())
                         throw new IllegalStateException("An existing unlock timestamp changed: " + id);
                 }
                 if (!restoreConfirmed)
@@ -114,7 +119,7 @@ public final class NativeLiveWriteCheck {
 
     private static void requireKnown(Response response) {
         if (response.achievements().isEmpty() ||
-                response.achievements().values().stream().anyMatch(a -> a.state() == Achievement.State.UNKNOWN))
+                response.achievements().values().stream().anyMatch(a -> a.state() == AchievementState.UNKNOWN))
             throw new IllegalStateException("Full native state is unavailable; cannot verify the baseline.");
     }
 }
