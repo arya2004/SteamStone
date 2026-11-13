@@ -70,8 +70,8 @@ public final class NativeLiveWriteCheck {
                 System.out.println("Restore acknowledged by Steam. All " + ids.size()
                         + " achievement states and existing unlock timestamps match baseline.");
             }
-        } catch (final IOException exception) {
-            throw new StoneException("Could not read the explicitly supplied verification credentials.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not read the explicitly supplied verification credentials.", e);
         }
     }
 
@@ -124,17 +124,17 @@ public final class NativeLiveWriteCheck {
     private static void pause(final long milliseconds) {
         try {
             Thread.sleep(milliseconds);
-        } catch (final InterruptedException exception) {
+        } catch (final InterruptedException e) {
             throw new StoneException("Live verification recovery was interrupted. Use the saved recovery request.",
-                    exception);
+                    e);
         }
     }
 
     private static void save(final ObjectMapper json, final Path output, final String name, final Object value) {
         try {
             json.writerWithDefaultPrettyPrinter().writeValue(output.resolve(name).toFile(), value);
-        } catch (final IOException exception) {
-            throw new StoneException("Could not save the verification snapshot or recovery request.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not save the verification snapshot or recovery request.", e);
         }
     }
 

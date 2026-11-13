@@ -21,9 +21,9 @@ public final class NativeSession implements AutoCloseable {
             user = new SteamUser(new SteamUserEvents());
             utils = new SteamUtils(new SteamUtilsEvents());
             stats = new SteamUserStats(callback);
-        } catch (final RuntimeException | LinkageError exception) {
+        } catch (final RuntimeException | LinkageError e) {
             try (this) {
-                throw new StoneException("Could not create the native Steam session.", exception);
+                throw new StoneException("Could not create the native Steam session.", e);
             }
         }
     }

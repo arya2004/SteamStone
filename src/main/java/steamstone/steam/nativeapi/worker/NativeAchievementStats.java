@@ -49,8 +49,8 @@ public final class NativeAchievementStats implements AchievementStats {
                 throw new StoneException("Storage callback timed out. Changes may still sync; reload before retrying.");
             }
             return callback.result() == SteamResult.OK;
-        } catch (final InterruptedException exception) {
-            throw new StoneException("Waiting for Steam storage was interrupted. Changes may still sync.", exception);
+        } catch (final InterruptedException e) {
+            throw new StoneException("Waiting for Steam storage was interrupted. Changes may still sync.", e);
         } finally {
             callback.end();
         }

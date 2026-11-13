@@ -16,16 +16,16 @@ public final class SteamStoneInjector {
     public static Injector create() {
         try {
             return Guice.createInjector(new SteamStoneModule());
-        } catch (final CreationException exception) {
-            throw new StoneException("Could not configure SteamStone's dependencies.", exception);
+        } catch (final CreationException e) {
+            throw new StoneException("Could not configure SteamStone's dependencies.", e);
         }
     }
 
     public static LibraryView createView() {
         try {
             return create().getInstance(LibraryView.class);
-        } catch (final ProvisionException exception) {
-            throw new StoneException("Could not initialize SteamStone's interface.", exception);
+        } catch (final ProvisionException e) {
+            throw new StoneException("Could not initialize SteamStone's interface.", e);
         }
     }
 }

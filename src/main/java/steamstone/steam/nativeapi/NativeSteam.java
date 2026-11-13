@@ -61,9 +61,9 @@ public final class NativeSteam {
                 }
                 return result;
             }
-        } catch (final IOException exception) {
+        } catch (final IOException e) {
             throw new StoneException("Could not exchange the Steam worker result. Changes may still sync; reload "
-                    + "before retrying.", exception);
+                    + "before retrying.", e);
         }
     }
 

@@ -60,8 +60,8 @@ public class AchievementApiTest {
                         output.write(body);
                     }
 
-                } catch (final IOException exception) {
-                    throw new StoneException("Could not serve the fixture HTTP response.", exception);
+                } catch (final IOException e) {
+                    throw new StoneException("Could not serve the fixture HTTP response.", e);
                 }
             });
             server.start();
@@ -69,8 +69,8 @@ public class AchievementApiTest {
             api = Guice.createInjector(Modules.override(new SteamStoneModule())
                     .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
-        } catch (final IOException exception) {
-            throw new StoneException("Could not start the fixture HTTP server.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not start the fixture HTTP server.", e);
         }
     }
 

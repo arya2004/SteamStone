@@ -24,8 +24,8 @@ public final class AppIcon {
                 throw new StoneException("Could not decode the SteamStone icon.", image.getException());
             }
             return image;
-        } catch (final IllegalArgumentException exception) {
-            throw new StoneException("Could not load the SteamStone icon.", exception);
+        } catch (final IllegalArgumentException e) {
+            throw new StoneException("Could not load the SteamStone icon.", e);
         }
     }
 

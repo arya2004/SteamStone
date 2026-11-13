@@ -74,8 +74,8 @@ public final class ProtocolJsonTest {
     private <T> T roundTrip(final T value, final Class<T> type) {
         try {
             return json.readValue(json.writeValueAsBytes(value), type);
-        } catch (final IOException exception) {
-            throw new StoneException("Could not round-trip the worker protocol fixture.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not round-trip the worker protocol fixture.", e);
         }
     }
 }

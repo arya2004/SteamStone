@@ -13,17 +13,17 @@ public final class WorkerProcess implements AutoCloseable {
     public WorkerProcess(final ProcessBuilder builder) {
         try {
             process = builder.start();
-        } catch (final IOException exception) {
-            throw new StoneException("Could not start the Steam worker.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not start the Steam worker.", e);
         }
     }
 
     public boolean await(final long seconds) {
         try {
             return process.waitFor(seconds, TimeUnit.SECONDS);
-        } catch (final InterruptedException exception) {
+        } catch (final InterruptedException e) {
             throw new StoneException("Waiting for the Steam worker was interrupted. Changes may still sync.",
-                    exception);
+                    e);
         }
     }
 

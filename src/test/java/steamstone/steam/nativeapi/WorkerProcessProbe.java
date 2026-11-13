@@ -10,8 +10,8 @@ public final class WorkerProcessProbe {
     public static void main(final String[] args) {
         try {
             Thread.sleep(30000);
-        } catch (final InterruptedException exception) {
-            throw new StoneException("The process fixture was interrupted.", exception);
+        } catch (final InterruptedException e) {
+            throw new StoneException("The process fixture was interrupted.", e);
         }
     }
 }

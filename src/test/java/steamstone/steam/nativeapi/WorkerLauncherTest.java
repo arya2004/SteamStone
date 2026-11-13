@@ -39,8 +39,8 @@ public final class WorkerLauncherTest {
             } finally {
                 restore(previous);
             }
-        } catch (final IOException exception) {
-            throw new StoneException("Could not prepare the launcher fixture.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not prepare the launcher fixture.", e);
         }
     }
 
@@ -96,8 +96,8 @@ public final class WorkerLauncherTest {
                 assertEquals(0, process.exitValue(), () -> "Worker probe failed; see " + output);
             }
             assertTrue(Files.readString(output).contains("no Steam session opened"));
-        } catch (final IOException exception) {
-            throw new StoneException("Could not prepare the worker dispatch check.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not prepare the worker dispatch check.", e);
         } finally {
             restore(previous);
         }

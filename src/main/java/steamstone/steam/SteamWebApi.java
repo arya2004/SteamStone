@@ -115,9 +115,9 @@ public final class SteamWebApi {
         final var playerName = StoneFutures.await(CompletableFuture.completedFuture(steamId)
                 .thenApply((final var id) -> get(PLAYER_SUMMARY_PATH + id, key)
                         .path(RESPONSE_KEY).path(PLAYERS_KEY))
-                .handle((final var players, final var failure) -> {
+                .handle((final var players, final var e) -> {
                     requireNotInterrupted();
-                    if (failure != null || !players.isArray() || players.isEmpty()) {
+                    if (e != null || !players.isArray() || players.isEmpty()) {
                         return steamId;
                     }
                     final var candidate = players.get(0).path(PERSONA_NAME_KEY).asText();
@@ -196,9 +196,9 @@ public final class SteamWebApi {
         final var snapshot = StoneFutures.await(CompletableFuture.completedFuture(steamId)
                 .thenApply((final var id) -> get(PLAYER_ACHIEVEMENTS_PATH + appId
                         + STEAM_ID_QUERY + id + LANGUAGE_QUERY, apiKey).path(PLAYER_STATS_KEY))
-                .handle((final var player, final var failure) -> {
+                .handle((final var player, final var e) -> {
                     requireNotInterrupted();
-                    return failure == null ? new PlayerSnapshot(player, EMPTY_VALUE)
+                    return e == null ? new PlayerSnapshot(player, EMPTY_VALUE)
                             : new PlayerSnapshot(null, "Achievement states are unavailable. Check your profile "
                             + "visibility and reload before editing.");
                 }));
@@ -288,15 +288,15 @@ public final class SteamWebApi {
                 if (value == null)
                     throw new StoneException("Steam returned an empty response. Please retry.");
                 return value;
-            } catch (final IOException exception) {
-                throw new StoneException("Steam returned an unexpected response. Please try again later.", exception);
+            } catch (final IOException e) {
+                throw new StoneException("Steam returned an unexpected response. Please try again later.", e);
             }
-        } catch (final InterruptedException exception) {
-            throw new StoneException("The Steam request was interrupted.", exception);
-        } catch (final HttpTimeoutException ex) {
-            throw new StoneException("Steam took too long to respond. Check your connection and retry.", ex);
-        } catch (final IOException ex) {
-            throw new StoneException("Couldn't reach Steam. Check your internet connection and try again.", ex);
+        } catch (final InterruptedException e) {
+            throw new StoneException("The Steam request was interrupted.", e);
+        } catch (final HttpTimeoutException e) {
+            throw new StoneException("Steam took too long to respond. Check your connection and retry.", e);
+        } catch (final IOException e) {
+            throw new StoneException("Couldn't reach Steam. Check your internet connection and try again.", e);
         }
     }
 

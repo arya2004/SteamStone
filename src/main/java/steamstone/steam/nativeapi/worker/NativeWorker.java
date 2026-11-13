@@ -58,15 +58,15 @@ public final class NativeWorker {
                     json.readValue(Path.of(args[FIRST_ARGUMENT_INDEX]).toFile(), Request.class);
             final var response =
                     StoneFutures.await(CompletableFuture.completedFuture(request).thenApply(NativeWorker::run)
-                            .exceptionally((final var failure) -> new Response(request.appId(), request.steamId(),
+                            .exceptionally((final var e) -> new Response(request.appId(), request.steamId(),
                                     Status.UNKNOWN,
                                     "Could not confirm the Steam session result. Keep Steam running, sign in to the " +
                                             "selected "
                                             + "account, and reload before retrying; changes may still sync.",
                                     Map.of())));
             json.writeValue(Path.of(args[RESPONSE_ARGUMENT_INDEX]).toFile(), response);
-        } catch (final IOException exception) {
-            throw new StoneException("Could not read or write the Steam worker protocol files.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not read or write the Steam worker protocol files.", e);
         }
     }
 
@@ -83,8 +83,8 @@ public final class NativeWorker {
                 }
             }
             System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
-        } catch (final RuntimeException | LinkageError exception) {
-            throw new StoneException("Could not load the bundled Steam native runtime.", exception);
+        } catch (final RuntimeException | LinkageError e) {
+            throw new StoneException("Could not load the bundled Steam native runtime.", e);
         }
     }
 
@@ -119,12 +119,12 @@ public final class NativeWorker {
                 return new AchievementCommit().execute(request,
                         new NativeAchievementStats(session.stats(), attributes, session.callback()));
             }
-        } catch (final SteamException exception) {
-            throw new StoneException("Could not initialize Steam.", exception);
-        } catch (final InterruptedException exception) {
-            throw new StoneException("The Steam session was interrupted. Changes may still sync.", exception);
-        } catch (final RuntimeException | LinkageError exception) {
-            throw new StoneException("Could not complete the Steam session. Changes may still sync.", exception);
+        } catch (final SteamException e) {
+            throw new StoneException("Could not initialize Steam.", e);
+        } catch (final InterruptedException e) {
+            throw new StoneException("The Steam session was interrupted. Changes may still sync.", e);
+        } catch (final RuntimeException | LinkageError e) {
+            throw new StoneException("Could not complete the Steam session. Changes may still sync.", e);
         }
     }
 }

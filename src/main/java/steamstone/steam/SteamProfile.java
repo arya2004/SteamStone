@@ -49,8 +49,8 @@ public final class SteamProfile {
             final URI uri;
             try {
                 uri = URI.create(value);
-            } catch (final IllegalArgumentException exception) {
-                throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.", exception);
+            } catch (final IllegalArgumentException e) {
+                throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.", e);
             }
             // Never send the API key to a user-provided host.
             if (!HTTPS_SCHEME.equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null ||

@@ -13,11 +13,11 @@ public final class StoneFutures {
     public static <T> T await(final CompletableFuture<T> future) {
         try {
             return future.join();
-        } catch (final CompletionException exception) {
-            final var cause = exception.getCause();
+        } catch (final CompletionException e) {
+            final var cause = e.getCause();
             throw new StoneException(
                     cause instanceof StoneException stone ? stone.getMessage() : "The operation failed.",
-                    cause == null ? exception : cause);
+                    cause == null ? e : cause);
         }
     }
 }

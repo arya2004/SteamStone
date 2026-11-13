@@ -40,9 +40,9 @@ public final class AchievementCommit {
         final boolean stored;
         try {
             stored = stats.storeAndWait();
-        } catch (final RuntimeException exception) {
+        } catch (final RuntimeException e) {
             throw new StoneException("Steam did not confirm storage. Some changes may still sync. "
-                    + "Reload before retrying.", exception);
+                    + "Reload before retrying.", e);
         }
         if (!stored)
             return response(request, Status.UNKNOWN,

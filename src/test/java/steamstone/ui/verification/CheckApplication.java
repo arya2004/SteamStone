@@ -75,15 +75,15 @@ public final class CheckApplication extends Application {
                     poll = new Timeline(new KeyFrame(Duration.seconds(1), (final var e) -> checkLoaded(output)));
                     poll.setCycleCount(Timeline.INDEFINITE);
                     poll.play();
-                } catch (final Exception ex) {
+                } catch (final Exception e) {
                     fail();
-                    throw new StoneException("UI verification failed.", ex);
+                    throw new StoneException("UI verification failed.", e);
                 }
             });
             initial.play();
 
-        } catch (final IOException exception) {
-            throw new StoneException("Could not initialize UI verification output.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not initialize UI verification output.", e);
         }
     }
 
@@ -170,9 +170,9 @@ public final class CheckApplication extends Application {
                             "search and credential-field clearing verified.");
             view.close();
             Platform.exit();
-        } catch (final Throwable ex) {
+        } catch (final Throwable e) {
             fail();
-            throw new StoneException("UI verification failed.", ex);
+            throw new StoneException("UI verification failed.", e);
         }
     }
 
@@ -190,8 +190,8 @@ public final class CheckApplication extends Application {
             image.setRGB(0, 0, width, height, pixels, 0, width);
             ImageIO.write(image, "png", path.toFile());
 
-        } catch (final IOException exception) {
-            throw new StoneException("Could not write the UI verification snapshot.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not write the UI verification snapshot.", e);
         }
     }
 

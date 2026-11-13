@@ -58,8 +58,8 @@ public final class WorkerLauncher {
                 try {
                     classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI())
                             .toAbsolutePath().normalize().toString());
-                } catch (final URISyntaxException exception) {
-                    throw new StoneException("Could not locate the Steam worker's runtime classpath.", exception);
+                } catch (final URISyntaxException e) {
+                    throw new StoneException("Could not locate the Steam worker's runtime classpath.", e);
                 }
             }
             command.add(String.join(File.pathSeparator, classpath));

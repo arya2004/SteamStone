@@ -50,9 +50,9 @@ public final class SteamAttributes implements AutoCloseable {
             read = linker.downcallHandle(
                     symbols.find(ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
-        } catch (final Throwable exception) {
+        } catch (final Throwable e) {
             try (arena) {
-                throw new StoneException("Could not initialize Steam achievement reads.", exception);
+                throw new StoneException("Could not initialize Steam achievement reads.", e);
             }
         }
     }
@@ -71,8 +71,8 @@ public final class SteamAttributes implements AutoCloseable {
                     : achieved.get(JAVA_BOOLEAN, VALUE_OFFSET) ? AchievementState.UNLOCKED : AchievementState.LOCKED,
                     description,
                     valid ? Integer.toUnsignedLong(time.get(JAVA_INT, VALUE_OFFSET)) : UNKNOWN_UNLOCK_TIME);
-        } catch (final Throwable ex) {
-            throw new StoneException("Steam achievement read failed.", ex);
+        } catch (final Throwable e) {
+            throw new StoneException("Steam achievement read failed.", e);
         }
     }
 

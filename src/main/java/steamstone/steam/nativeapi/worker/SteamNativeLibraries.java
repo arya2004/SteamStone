@@ -37,8 +37,8 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
                     .getCodeSource().getLocation().toURI());
             // Development: target/classes -> target/native. Installed: app/steamstone.jar -> app/native.
             directory = application.getParent().resolve(NATIVE_DIRECTORY).toAbsolutePath().normalize();
-        } catch (final URISyntaxException ex) {
-            throw new StoneException("Could not locate the installed Steam libraries.", ex);
+        } catch (final URISyntaxException e) {
+            throw new StoneException("Could not locate the installed Steam libraries.", e);
         }
     }
 

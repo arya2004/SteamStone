@@ -22,8 +22,8 @@ public final class WorkerResourcesTest {
             final var nested = Files.createDirectories(directory.resolve("nested"));
             Files.writeString(nested.resolve("response.json"), "{}");
             assertTrue(Files.isRegularFile(nested.resolve("response.json")));
-        } catch (final IOException exception) {
-            throw new StoneException("Could not prepare the cleanup fixture.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not prepare the cleanup fixture.", e);
         }
         assertFalse(Files.exists(directory));
     }

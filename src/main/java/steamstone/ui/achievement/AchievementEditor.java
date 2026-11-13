@@ -166,11 +166,11 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             return StoneFutures.await(CompletableFuture.completedFuture(web)
                     .thenApply((final var data) -> nativeSteam.execute(new Request(appId, account,
                             data.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of())))
-                    .handle((final var response, final var failure) -> {
+                    .handle((final var response, final var e) -> {
                         if (Thread.currentThread().isInterrupted()) {
-                            throw new StoneException("Achievement loading was cancelled.", failure);
+                            throw new StoneException("Achievement loading was cancelled.", e);
                         }
-                        if (failure != null) {
+                        if (e != null) {
                             return new LoadedAchievements(new AchievementList(web.achievements(),
                                     "Native Steam session unavailable. Keep Steam running and sign in to this account; "
                                             + "reload to enable editing."), false);
@@ -328,7 +328,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
 
     public Image icon(final Achievement achievement) {
         return StoneFutures.await(CompletableFuture.completedFuture(achievement).thenApply(this::loadIcon)
-                .exceptionally((final var failure) -> null));
+                .exceptionally((final var e) -> null));
     }
 
     private Image loadIcon(final Achievement achievement) {
@@ -342,8 +342,8 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                     || !(host.endsWith(".steamstatic.com") || host.endsWith(".steamcommunity.com")
                     || host.equals("steamcdn-a.akamaihd.net")))
                 return null;
-        } catch (final IllegalArgumentException ex) {
-            throw new StoneException("Steam supplied an invalid achievement image URL.", ex);
+        } catch (final IllegalArgumentException e) {
+            throw new StoneException("Steam supplied an invalid achievement image URL.", e);
         }
         final var image = icons.computeIfAbsent(url, (final var value) -> new Image(value, 32, 32, true, true, true));
         if (icons.size() > 100) {

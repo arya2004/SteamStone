@@ -51,8 +51,8 @@ public final class Request {
             this.ids = List.copyOf(ids);
             this.expected = Map.copyOf(expected);
             this.changes = Map.copyOf(changes);
-        } catch (final NullPointerException exception) {
-            throw new StoneException("Native request collections must not contain null values.", exception);
+        } catch (final NullPointerException e) {
+            throw new StoneException("Native request collections must not contain null values.", e);
         }
         if (appId <= 0 || appId > MAX_APP_ID || steamId == null ||
                 !steamId.matches(SteamConstants.STEAM_ID_PATTERN)

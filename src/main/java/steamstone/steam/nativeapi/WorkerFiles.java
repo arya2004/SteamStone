@@ -16,8 +16,8 @@ public final class WorkerFiles implements AutoCloseable {
     public WorkerFiles(final String prefix) {
         try {
             directory = Files.createTempDirectory(prefix).toAbsolutePath().normalize();
-        } catch (final IOException exception) {
-            throw new StoneException("Could not create the Steam worker's temporary directory.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not create the Steam worker's temporary directory.", e);
         }
     }
 
@@ -31,8 +31,8 @@ public final class WorkerFiles implements AutoCloseable {
             for (final var path : paths.sorted(Comparator.reverseOrder()).toList()) {
                 Files.deleteIfExists(path);
             }
-        } catch (final IOException exception) {
-            throw new StoneException("Could not remove the Steam worker's temporary files.", exception);
+        } catch (final IOException e) {
+            throw new StoneException("Could not remove the Steam worker's temporary files.", e);
         }
     }
 }
