@@ -25,13 +25,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import lombok.RequiredArgsConstructor;
 
-import steamstone.concurrent.StoneFutures;
 import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
@@ -166,23 +164,19 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             if (web.achievements().isEmpty()) {
                 return new LoadedAchievements(web, false);
             }
-            return StoneFutures.await(CompletableFuture.completedFuture(web)
-                    .thenApply((final var data) -> nativeSteam.execute(new Request(appId, account,
-                            data.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of())))
-                    .handle((final var response, final var e) -> {
-                        if (Thread.currentThread().isInterrupted() || StoneException.codeOf(e) == ErrorCode.CANCELLED) {
-                            throw new StoneException(ErrorCode.CANCELLED, e);
-                        }
-                        if (e != null) {
-                            return new LoadedAchievements(new AchievementList(web.achievements(),
-                                    StoneException.codeOf(e)), false);
-                        }
-                        if (response.status() == Status.READ) {
-                            return new LoadedAchievements(merge(web.achievements(), response, ErrorCode.NONE), true);
-                        }
-                        return new LoadedAchievements(new AchievementList(web.achievements(), response.errorCode()),
-                                false);
-                    }));
+            final Response response;
+            try {
+                response = nativeSteam.execute(new Request(appId, account,
+                        web.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of()));
+            } catch (final StoneException e) {
+                if (Thread.currentThread().isInterrupted() || e.code() == ErrorCode.CANCELLED) {
+                    throw new StoneException(ErrorCode.CANCELLED, e);
+                }
+                return new LoadedAchievements(new AchievementList(web.achievements(), e.code()), false);
+            }
+            return response.status() == Status.READ
+                    ? new LoadedAchievements(merge(web.achievements(), response, ErrorCode.NONE), true)
+                    : new LoadedAchievements(new AchievementList(web.achievements(), response.errorCode()), false);
         });
         task = next;
         updateControls();
@@ -329,11 +323,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     }
 
     public Image icon(final Achievement achievement) {
-        return StoneFutures.await(CompletableFuture.completedFuture(achievement).thenApply(this::loadIcon)
-                .exceptionally((final var e) -> null));
-    }
-
-    private Image loadIcon(final Achievement achievement) {
         final var url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
         if (url.isBlank())
             return null;
@@ -345,7 +334,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                     || host.equals("steamcdn-a.akamaihd.net")))
                 return null;
         } catch (final IllegalArgumentException e) {
-            throw new StoneException(ErrorCode.STEAM_API, e);
+            return null;
         }
         final var image = icons.computeIfAbsent(url, (final var value) -> new Image(value, 32, 32, true, true, true));
         if (icons.size() > 100) {

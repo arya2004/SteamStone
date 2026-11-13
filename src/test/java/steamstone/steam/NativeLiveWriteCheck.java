@@ -7,10 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
-import steamstone.concurrent.StoneFutures;
 import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.achievement.Achievement;
@@ -60,7 +58,7 @@ public final class NativeLiveWriteCheck {
                 unlockAndVerify(steam, account, ids, chosen, baseline, json, output);
             } finally {
                 // Always restore, including after an uncertain or failed unlock call.
-                final var confirmed = restore(steam, account, ids, chosen, json, output, 0);
+                final var confirmed = restore(steam, account, ids, chosen, json, output);
                 final var after = read(steam, account, ids);
                 save(json, output, "requiem-after.json", after);
                 verifyBaseline(baseline, after);
@@ -97,28 +95,26 @@ public final class NativeLiveWriteCheck {
     }
 
     private static boolean restore(final NativeSteam steam, final String account, final List<String> ids,
-                                   final String chosen, final ObjectMapper json, final Path output, final int attempt) {
-        final var confirmed =
-                StoneFutures.await(CompletableFuture.completedFuture(attempt).thenApply((final var index) -> {
-                    if (index > 0) {
-                        pause(10000L * index);
-                    }
-                    final var current = read(steam, account, ids);
-                    requireKnown(current);
-                    final var unlocked = current.achievements().get(chosen).state() == AchievementState.UNLOCKED;
-                    final var restored = steam.execute(new Request(1182900, account, ids,
-                            Map.of(chosen, unlocked), Map.of(chosen, false)));
-                    save(json, output, "requiem-restore-result.json", restored);
-                    return restored.status() == Status.CONFIRMED;
-                }).handle((final var result, final var e) -> {
-                    if (e != null) {
-                        System.out.println(
-                                "Restore attempt did not confirm; recovery request and baseline remain saved.");
-                    }
-                    return e == null && result;
-                }));
-        return confirmed || (attempt < 2 && !Thread.currentThread().isInterrupted()
-                && restore(steam, account, ids, chosen, json, output, attempt + 1));
+                                   final String chosen, final ObjectMapper json, final Path output) {
+        for (var attempt = 0; attempt < 3 && !Thread.currentThread().isInterrupted(); attempt++) {
+            try {
+                if (attempt > 0) {
+                    pause(10000L * attempt);
+                }
+                final var current = read(steam, account, ids);
+                requireKnown(current);
+                final var unlocked = current.achievements().get(chosen).state() == AchievementState.UNLOCKED;
+                final var restored = steam.execute(new Request(1182900, account, ids,
+                        Map.of(chosen, unlocked), Map.of(chosen, false)));
+                save(json, output, "requiem-restore-result.json", restored);
+                if (restored.status() == Status.CONFIRMED) {
+                    return true;
+                }
+            } catch (final StoneException e) {
+                System.out.println("Restore attempt did not confirm; recovery request and baseline remain saved.");
+            }
+        }
+        return false;
     }
 
     private static void pause(final long milliseconds) {

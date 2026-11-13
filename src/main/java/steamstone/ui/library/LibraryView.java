@@ -26,7 +26,6 @@ import jakarta.inject.Provider;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -81,10 +80,9 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final VBox restoringScreen = new VBox(label("Connecting to Steam…", "welcome-subtitle"));
     private SteamLibrary library;
     private Game selectedGame;
-    private Task<SteamLibrary> currentTask;
+    private Task<?> currentTask;
     private String sessionKey;
     private String sessionProfile;
-    private Task<?> settingsTask;
     private Consumer<String> browser = (final var url) -> {
         throw new StoneException(ErrorCode.APPLICATION);
     };
@@ -99,9 +97,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         restoringScreen.setAlignment(Pos.CENTER);
         showLibrary(false);
 
-        final var workspace = new VBox(0, screens);
-        VBox.setVgrow(screens, Priority.ALWAYS);
-        setCenter(workspace);
+        setCenter(screens);
 
         keyField.setId("api-key");
         profileField.setId("steam-profile");
@@ -117,7 +113,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         keyField.setOnAction((final var event) -> profileField.requestFocus());
         remember.setOnAction((final var event) -> {
             if (!remember.isSelected()) {
-                settings(() -> {
+                run(() -> {
                     connection.forget();
                     return null;
                 }, (final var ignored) -> {
@@ -137,11 +133,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                         selectGame(game);
                     }
                 });
-        connectionScreen.setVisible(false);
-        connectionScreen.setManaged(false);
-        restoringScreen.setVisible(true);
-        restoringScreen.setManaged(true);
-        settings(connection::saved, (final var saved) -> {
+        showScreen(restoringScreen);
+        run(connection::saved, (final var saved) -> {
             if (saved.isEmpty()) {
                 showLibrary(false);
             } else {
@@ -273,13 +266,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void connect() {
-        if (currentTask != null || settingsTask != null)
-            return;
         load(keyField.getText(), profileField.getText(), true);
     }
 
     private void load(final String key, final String profile, final boolean updateSaved) {
-        if (currentTask != null || settingsTask != null)
+        if (currentTask != null)
             return;
         final var nextKey = key == null ? "" : key.strip();
         final var nextProfile = profile == null ? "" : profile.strip();
@@ -287,18 +278,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         hide(connectionError);
         connectionStatus.setText("Connecting to Steam and loading your library…");
         show(connectionStatus);
-        setBusy(true);
         if (library != null)
             libraryStatus.setText("Refreshing from Steam… Your current list is still visible.");
 
-        final var task = new StoneTask<>(() -> api.loadLibrary(nextKey, nextProfile));
-        currentTask = task;
-        task.setOnSucceeded((final var event) -> {
-            if (currentTask != task)
-                return;
-            currentTask = null;
-            setBusy(false);
-            library = task.getValue();
+        run(() -> api.loadLibrary(nextKey, nextProfile), (final var loaded) -> {
+            library = loaded;
             refreshButton.setDisable(false);
             sessionKey = nextKey;
             sessionProfile = nextProfile;
@@ -319,7 +303,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                     : "Updated at " + time);
             if (updateSaved) {
 
-                settings(() -> {
+                run(() -> {
                     if (save)
                         connection.remember(nextKey, nextProfile);
                     else
@@ -329,22 +313,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                 });
             }
         });
-        task.setOnFailed((final var event) -> {
-            if (currentTask != task)
-                return;
-            currentTask = null;
-            setBusy(false);
-            hide(connectionStatus);
-            final var message = StoneException.codeOf(task.getException()).message();
-            if (library == null) {
-                showLibrary(false);
-                connectionError.setText(message);
-                show(connectionError);
-            } else {
-                libraryStatus.setText(message + " Showing the earlier session snapshot.");
-            }
-        });
-        requests.submit(task);
     }
 
     private void filterGames() {
@@ -354,7 +322,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         final var visible = library.games().stream()
                 .filter((final var game) -> game.name().toLowerCase(Locale.ROOT).contains(query)
                         || Long.toString(game.appId()).contains(query))
-                .sorted(Comparator.comparing(Game::name, String.CASE_INSENSITIVE_ORDER).thenComparingLong(Game::appId))
                 .toList();
         gameList.getSelectionModel().clearSelection();
         gameList.getItems().setAll(visible);
@@ -421,26 +388,26 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         load(saved.apiKey(), saved.profile(), false);
     }
 
-    private <T> void settings(final Supplier<T> operation, final Consumer<T> success) {
-        if (settingsTask != null || currentTask != null) {
+    private <T> void run(final Supplier<T> operation, final Consumer<T> success) {
+        if (currentTask != null)
             return;
-        }
         final var task = new StoneTask<>(operation);
-        settingsTask = task;
+        currentTask = task;
         setBusy(true);
         task.setOnSucceeded((final var event) -> {
-            if (settingsTask != task)
+            if (currentTask != task)
                 return;
-            settingsTask = null;
+            currentTask = null;
             setBusy(false);
             success.accept(task.getValue());
         });
         task.setOnFailed((final var event) -> {
-            if (settingsTask != task)
+            if (currentTask != task)
                 return;
-            settingsTask = null;
+            currentTask = null;
             setBusy(false);
-            final var message = ErrorCode.SAVED_ACCOUNT.message();
+            hide(connectionStatus);
+            final var message = StoneException.codeOf(task.getException()).message();
             if (library == null) {
                 showLibrary(false);
                 connectionError.setText(message);
@@ -454,12 +421,14 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void showLibrary(final boolean value) {
-        restoringScreen.setVisible(false);
-        restoringScreen.setManaged(false);
-        connectionScreen.setVisible(!value);
-        connectionScreen.setManaged(!value);
-        editor.setVisible(value);
-        editor.setManaged(value);
+        showScreen(value ? editor : connectionScreen);
+    }
+
+    private void showScreen(final Node screen) {
+        for (final var child : screens.getChildren()) {
+            child.setVisible(child == screen);
+            child.setManaged(child == screen);
+        }
     }
 
     public Image iconFor(final Game game) {
@@ -500,10 +469,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     public void close() {
         if (currentTask != null)
             currentTask.cancel(true);
-        if (settingsTask != null) {
-            settingsTask.cancel(true);
-            settingsTask = null;
-        }
+        currentTask = null;
         sessionKey = null;
         keyField.clear();
         icons.clear();

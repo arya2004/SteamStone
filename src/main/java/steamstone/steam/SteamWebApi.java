@@ -19,10 +19,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import lombok.RequiredArgsConstructor;
-import steamstone.concurrent.StoneFutures;
 import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
@@ -108,19 +106,19 @@ public final class SteamWebApi {
         final var response = get(OWNED_GAMES_PATH + encode(input), key).path(RESPONSE_KEY);
         final var library = parseLibrary(response, steamId, steamId);
 
-        // Optional display data must not hide a valid library snapshot.
-        final var playerName = StoneFutures.await(CompletableFuture.completedFuture(steamId)
-                .thenApply((final var id) -> get(PLAYER_SUMMARY_PATH + id, key)
-                        .path(RESPONSE_KEY).path(PLAYERS_KEY))
-                .handle((final var players, final var e) -> {
-                    requireNotInterrupted(e);
-                    if (e != null || !players.isArray() || players.isEmpty()) {
-                        return steamId;
-                    }
-                    final var candidate = players.get(0).path(PERSONA_NAME_KEY).asText();
-                    return candidate.isBlank() ? steamId : candidate;
-                }));
-        return new SteamLibrary(steamId, playerName, library.games(), library.fetchedAt());
+        return new SteamLibrary(steamId, playerName(steamId, key), library.games(), library.fetchedAt());
+    }
+
+    private String playerName(final String steamId, final String key) {
+        // A missing display name should not prevent loading the library.
+        try {
+            final var name = get(PLAYER_SUMMARY_PATH + steamId, key)
+                    .path(RESPONSE_KEY).path(PLAYERS_KEY).path(0).path(PERSONA_NAME_KEY).asText();
+            return name.isBlank() ? steamId : name;
+        } catch (final StoneException e) {
+            requireNotInterrupted(e);
+            return steamId;
+        }
     }
 
     private String resolveProfile(final SteamProfile profile, final String key) {
@@ -189,15 +187,15 @@ public final class SteamWebApi {
         if (!definitions.isArray())
             throw new StoneException(ErrorCode.STEAM_API);
 
-        final var snapshot = StoneFutures.await(CompletableFuture.completedFuture(steamId)
-                .thenApply((final var id) -> get(PLAYER_ACHIEVEMENTS_PATH + appId
-                        + STEAM_ID_QUERY + id + LANGUAGE_QUERY, apiKey).path(PLAYER_STATS_KEY))
-                .handle((final var player, final var e) -> {
-                    requireNotInterrupted(e);
-                    return e == null ? new PlayerSnapshot(player, ErrorCode.NONE)
-                            : new PlayerSnapshot(null, StoneException.codeOf(e));
-                }));
-        return combineAchievements(definitions, snapshot.player(), steamId, snapshot.errorCode());
+        final JsonNode player;
+        try {
+            player = get(PLAYER_ACHIEVEMENTS_PATH + appId + STEAM_ID_QUERY + steamId + LANGUAGE_QUERY, apiKey)
+                    .path(PLAYER_STATS_KEY);
+        } catch (final StoneException e) {
+            requireNotInterrupted(e);
+            return combineAchievements(definitions, null, steamId, e.code());
+        }
+        return combineAchievements(definitions, player, steamId, ErrorCode.NONE);
     }
 
     public AchievementList combineAchievements(final JsonNode definitions, final JsonNode player, final String steamId,
