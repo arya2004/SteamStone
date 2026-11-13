@@ -18,6 +18,7 @@ public final class WorkerResourcesTest {
         final Path directory;
         try (final var files = new WorkerFiles("steamstone-cleanup-test-")) {
             directory = files.directory();
+            assertTrue(directory.isAbsolute());
             final var nested = Files.createDirectories(directory.resolve("nested"));
             Files.writeString(nested.resolve("response.json"), "{}");
             assertTrue(Files.isRegularFile(nested.resolve("response.json")));

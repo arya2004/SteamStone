@@ -172,10 +172,6 @@ def main():
     for name in ("LICENSE.md", "README.md"):
         shutil.copy2(ROOT / name, stage)
     shutil.copytree(ROOT / "licenses", stage / "licenses")
-    worker_properties = ROOT / "target/worker-launcher.properties"
-    worker_properties.write_text("main-class=steamstone.steam.nativeapi.worker.NativeWorker\n"
-                                 "java-options=--enable-native-access=ALL-UNNAMED\n"
-                                 "win-menu=false\nwin-shortcut=false\n", encoding="utf-8")
     bundle_version = version
     if system == "Darwin" and version.split(".")[0] == "0":
         bundle_version = "1." + version.split(".", 1)[1]
@@ -183,9 +179,8 @@ def main():
                "--vendor", "SteamStone", "--input", stage, "--main-jar", "steamstone.jar",
                "--icon", packaging_icon(system),
                "--main-class", "steamstone.Main", "--dest", dist,
-               "--add-launcher", f"SteamStoneWorker={worker_properties}",
                "--java-options", "--module-path=$APPDIR/lib", "--java-options", "--add-modules=javafx.controls",
-               "--java-options", "--enable-native-access=javafx.graphics",
+               "--java-options", "--enable-native-access=javafx.graphics,ALL-UNNAMED",
                "--add-modules", "java.se,jdk.unsupported,jdk.crypto.ec"]
     if system == "Darwin":
         command += ["--mac-package-identifier", "app.steamstone.desktop"]

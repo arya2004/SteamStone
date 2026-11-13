@@ -73,9 +73,12 @@ jobs:
             $actual = (Get-FileHash $download.FullName -Algorithm SHA256).Hash
             if ($expected -ne $actual) { throw "Checksum mismatch for $($download.Name)." }
           }
-          $expanded = Join-Path $env:RUNNER_TEMP 'steamstone-portable-check'
+          $expanded = Join-Path $env:RUNNER_TEMP 'steamstone portable check'
           Expand-Archive -Path $portable[0].FullName -DestinationPath $expanded
           $launcher = Join-Path $expanded 'SteamStone/SteamStone.exe'
+          if (Test-Path (Join-Path $expanded 'SteamStone/SteamStoneWorker.exe')) {
+            throw 'The app must reuse SteamStone.exe rather than ship a second worker executable.'
+          }
           $probe = Start-Process -FilePath $launcher -ArgumentList '--check-runtime' `
             -WorkingDirectory $env:RUNNER_TEMP -Wait -PassThru
           if ($probe.ExitCode -ne 0) { throw 'The extracted portable app failed its runtime check.' }

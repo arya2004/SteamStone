@@ -15,7 +15,6 @@ SPEC.loader.exec_module(package)
 VERSION = "0.1.2"
 IMAGE_FILES = {
     "SteamStone.exe": b"MZfixture app launcher",
-    "SteamStoneWorker.exe": b"MZfixture worker launcher",
     "runtime/bin/java.exe": b"MZfixture bundled runtime",
     "app/steamstone.jar": b"fixture application",
     "app/native/steam_api64.dll": b"fixture Steam API",
