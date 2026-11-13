@@ -9,6 +9,7 @@ import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 
 import steamstone.exception.StoneException;
+import steamstone.exception.ResourceCleanup;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.protocol.Entry;
 
@@ -51,9 +52,7 @@ public final class SteamAttributes implements AutoCloseable {
                     symbols.find(ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         } catch (final Throwable e) {
-            try (arena) {
-                throw new StoneException("Could not initialize Steam achievement reads.", e);
-            }
+            throw ResourceCleanup.afterFailure("Could not initialize Steam achievement reads.", e, arena::close);
         }
     }
 
@@ -72,7 +71,7 @@ public final class SteamAttributes implements AutoCloseable {
                     description,
                     valid ? Integer.toUnsignedLong(time.get(JAVA_INT, VALUE_OFFSET)) : UNKNOWN_UNLOCK_TIME);
         } catch (final Throwable e) {
-            throw new StoneException("Steam achievement read failed.", e);
+            throw StoneException.wrap("Steam achievement read failed.", e);
         }
     }
 

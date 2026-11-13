@@ -1,6 +1,5 @@
 package steamstone.steam;
 
-import com.google.inject.Guice;
 import com.google.inject.util.Modules;
 import com.sun.net.httpserver.HttpServer;
 
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamApiFixtureModule;
 import steamstone.inject.SteamStoneModule;
+import steamstone.inject.SteamStoneInjector;
 import steamstone.model.achievement.AchievementState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,7 +66,7 @@ public class AchievementApiTest {
             });
             server.start();
             final var base = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
-            api = Guice.createInjector(Modules.override(new SteamStoneModule())
+            api = SteamStoneInjector.create(Modules.override(new SteamStoneModule())
                     .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
         } catch (final IOException e) {

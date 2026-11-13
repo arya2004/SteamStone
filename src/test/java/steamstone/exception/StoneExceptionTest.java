@@ -19,6 +19,27 @@ public final class StoneExceptionTest {
     }
 
     @Test
+    public void wrapPreservesExistingApplicationFailuresWithoutAddingAnotherLayer() {
+        final var cause = new IOException("Fixture failure");
+        final var existing = new StoneException("Specific operation failed.", cause);
+        assertSame(existing, StoneException.wrap("Generic failure.", existing));
+        assertSame(cause, existing.getCause());
+    }
+
+    @Test
+    public void wrapAddsContextToForeignFailuresAndPreservesInterruption() {
+        try {
+            final var cause = new InterruptedException("Fixture interruption");
+            final var failure = StoneException.wrap("Interrupted operation.", cause);
+            assertSame(cause, failure.getCause());
+            assertEquals("Interrupted operation.", failure.getMessage());
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void restoresInterruptWhenWrappingInterruptedException() {
         assertFalse(Thread.currentThread().isInterrupted());
         try {

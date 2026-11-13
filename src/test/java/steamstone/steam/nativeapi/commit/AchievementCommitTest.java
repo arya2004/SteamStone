@@ -94,8 +94,7 @@ public class AchievementCommitTest {
         final var failure = assertThrows(StoneException.class,
                 () -> new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam));
         assertTrue(failure.getMessage().contains("may still sync"));
-        assertInstanceOf(StoneException.class, failure.getCause());
-        assertInstanceOf(TimeoutException.class, failure.getCause().getCause());
+        assertInstanceOf(TimeoutException.class, failure.getCause());
         assertEquals(AchievementState.UNLOCKED, steam.states.get("A"));
     }
 

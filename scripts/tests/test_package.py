@@ -110,5 +110,28 @@ class PackagingIconTest(unittest.TestCase):
                 package.packaging_icon("Windows")
 
 
+class RuntimeDependenciesTest(unittest.TestCase):
+    def test_only_packages_resolved_dependencies_and_ignores_stale_versions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "lib").mkdir()
+            for name in ("guava-old.jar", "guava-current.jar", "other.jar"):
+                (root / "lib" / name).write_bytes(b"fixture dependency")
+            jar = root / "steamstone.jar"
+            with zipfile.ZipFile(jar, "w") as output:
+                output.writestr("META-INF/MANIFEST.MF",
+                                "Manifest-Version: 1.0\r\nClass-Path: lib/guava-current.jar \r\n lib/other.jar\r\n")
+            self.assertEqual([root / "lib/guava-current.jar", root / "lib/other.jar"],
+                             package.runtime_dependencies(jar))
+
+    def test_missing_resolved_dependency_stops_packaging(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jar = Path(directory) / "steamstone.jar"
+            with zipfile.ZipFile(jar, "w") as output:
+                output.writestr("META-INF/MANIFEST.MF", "Class-Path: lib/missing.jar\r\n")
+            with self.assertRaisesRegex(SystemExit, "Missing or invalid runtime dependency"):
+                package.runtime_dependencies(jar)
+
+
 if __name__ == "__main__":
     unittest.main()

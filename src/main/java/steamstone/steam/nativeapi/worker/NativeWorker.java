@@ -14,9 +14,7 @@ import java.lang.foreign.SymbolLookup;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
-import steamstone.concurrent.StoneFutures;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.commit.AchievementCommit;
 import steamstone.steam.nativeapi.protocol.Request;
@@ -56,35 +54,25 @@ public final class NativeWorker {
         try {
             final var request =
                     json.readValue(Path.of(args[FIRST_ARGUMENT_INDEX]).toFile(), Request.class);
-            final var response =
-                    StoneFutures.await(CompletableFuture.completedFuture(request).thenApply(NativeWorker::run)
-                            .exceptionally((final var e) -> new Response(request.appId(), request.steamId(),
-                                    Status.UNKNOWN,
-                                    "Could not confirm the Steam session result. Keep Steam running, sign in to the " +
-                                            "selected "
-                                            + "account, and reload before retrying; changes may still sync.",
-                                    Map.of())));
-            json.writeValue(Path.of(args[RESPONSE_ARGUMENT_INDEX]).toFile(), response);
+            json.writeValue(Path.of(args[RESPONSE_ARGUMENT_INDEX]).toFile(), run(request));
         } catch (final IOException e) {
             throw new StoneException("Could not read or write the Steam worker protocol files.", e);
         }
     }
 
     private static void checkRuntime() {
-        try {
+        try (final var arena = Arena.ofConfined()) {
             final var loader = new SteamNativeLibraries();
             SteamAPI.loadLibraries(loader);
-            try (final var arena = Arena.ofConfined()) {
-                final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
-                for (final var symbol : REQUIRED_SYMBOLS) {
-                    if (symbols.find(symbol).isEmpty()) {
-                        throw new StoneException("Missing Steam API symbol: " + symbol);
-                    }
+            final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
+            for (final var symbol : REQUIRED_SYMBOLS) {
+                if (symbols.find(symbol).isEmpty()) {
+                    throw new StoneException("Missing Steam API symbol: " + symbol);
                 }
             }
             System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
         } catch (final RuntimeException | LinkageError e) {
-            throw new StoneException("Could not load the bundled Steam native runtime.", e);
+            throw StoneException.wrap("Could not load the bundled Steam native runtime.", e);
         }
     }
 
@@ -119,12 +107,8 @@ public final class NativeWorker {
                 return new AchievementCommit().execute(request,
                         new NativeAchievementStats(session.stats(), attributes, session.callback()));
             }
-        } catch (final SteamException e) {
-            throw new StoneException("Could not initialize Steam.", e);
-        } catch (final InterruptedException e) {
-            throw new StoneException("The Steam session was interrupted. Changes may still sync.", e);
-        } catch (final RuntimeException | LinkageError e) {
-            throw new StoneException("Could not complete the Steam session. Changes may still sync.", e);
+        } catch (final SteamException | InterruptedException | RuntimeException | LinkageError e) {
+            throw StoneException.wrap("Could not complete the Steam session. Changes may still sync.", e);
         }
     }
 }

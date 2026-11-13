@@ -36,7 +36,8 @@ public final class FakeSteam implements AchievementStats {
     public boolean storeAndWait() {
         stores++;
         if (timeout)
-            throw new StoneException("Storage timed out.", new TimeoutException());
+            throw new StoneException("Storage timed out. Changes may still sync; reload before retrying.",
+                    new TimeoutException());
         return storageAccepted;
     }
 }

@@ -1,8 +1,8 @@
 package steamstone.steam;
 
-import com.google.inject.Guice;
 import com.google.inject.util.Modules;
 import com.sun.net.httpserver.HttpServer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,11 +17,13 @@ import org.junit.jupiter.api.Test;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamApiFixtureModule;
 import steamstone.inject.SteamStoneModule;
+import steamstone.inject.SteamStoneInjector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class SteamWebApiTest {
     // Deliberately synthetic credential, never read from the developer's key file.
@@ -78,7 +80,7 @@ public class SteamWebApiTest {
             });
             server.start();
             final var base = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
-            api = Guice.createInjector(Modules.override(new SteamStoneModule())
+            api = SteamStoneInjector.create(Modules.override(new SteamStoneModule())
                     .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
         } catch (final IOException e) {
@@ -143,7 +145,9 @@ public class SteamWebApiTest {
     @Test
     public void rejectsMalformedAndInvalidGameData() {
         ownedBody = "not-json";
-        assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+        final var e = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+        assertTrue(e.getMessage().contains("unexpected response"));
+        assertInstanceOf(JsonProcessingException.class, e.getCause());
         ownedBody = "{\"response\":{\"game_count\":1,\"games\":[{\"appid\":-1}]}}";
         assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
     }

@@ -51,7 +51,13 @@ public final class NativeSteam {
                     return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
                             "Steam session timed out. Changes may still sync; reload before retrying.", Map.of());
                 }
-                if (!Files.isRegularFile(output) || Files.size(output) > MAX_RESPONSE_BYTES) {
+                if (process.exitValue() != SUCCESS_EXIT_CODE || !Files.isRegularFile(output)) {
+                    return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
+                            "Could not confirm the Steam session result. Keep Steam running, sign in to the "
+                                    + "selected account, and reload before retrying; changes may still sync.",
+                            Map.of());
+                }
+                if (Files.size(output) > MAX_RESPONSE_BYTES) {
                     throw new StoneException("Steam worker exited without a valid result. Reload before retrying; "
                             + "changes may still sync.");
                 }

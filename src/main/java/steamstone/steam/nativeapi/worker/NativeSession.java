@@ -4,7 +4,7 @@ import com.codedisaster.steamworks.SteamAPI;
 import com.codedisaster.steamworks.SteamUser;
 import com.codedisaster.steamworks.SteamUserStats;
 import com.codedisaster.steamworks.SteamUtils;
-import steamstone.exception.StoneException;
+import steamstone.exception.ResourceCleanup;
 
 /**
  * Owns the native handles and releases them before shutting Steam down.
@@ -22,9 +22,7 @@ public final class NativeSession implements AutoCloseable {
             utils = new SteamUtils(new SteamUtilsEvents());
             stats = new SteamUserStats(callback);
         } catch (final RuntimeException | LinkageError e) {
-            try (this) {
-                throw new StoneException("Could not create the native Steam session.", e);
-            }
+            throw ResourceCleanup.afterFailure("Could not create the native Steam session.", e, this::close);
         }
     }
 
@@ -46,24 +44,19 @@ public final class NativeSession implements AutoCloseable {
 
     @Override
     public void close() {
-        try {
-            if (stats != null) {
-                stats.dispose();
-            }
-        } finally {
-            try {
-                if (utils != null) {
-                    utils.dispose();
-                }
-            } finally {
-                try {
-                    if (user != null) {
+        ResourceCleanup.run(
+                () -> {
+                    if (stats != null)
+                        stats.dispose();
+                },
+                () -> {
+                    if (utils != null)
+                        utils.dispose();
+                },
+                () -> {
+                    if (user != null)
                         user.dispose();
-                    }
-                } finally {
-                    SteamAPI.shutdown();
-                }
-            }
-        }
+                },
+                SteamAPI::shutdown);
     }
 }

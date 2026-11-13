@@ -13,6 +13,11 @@ import java.util.Arrays;
 
 import steamstone.Main;
 import steamstone.exception.StoneException;
+import steamstone.steam.nativeapi.protocol.Request;
+import steamstone.steam.nativeapi.protocol.Status;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,6 +80,24 @@ public final class WorkerLauncherTest {
                     Path.of(entry).isAbsolute() && Files.exists(Path.of(entry))));
             assertEquals(Main.class.getName(), command.get(command.size() - 2));
             assertEquals("--steam-worker", command.getLast());
+        } finally {
+            restore(previous);
+        }
+    }
+
+    @Test
+    public void failedChildNeverConfirmsAchievementChanges() {
+        final var java = Path.of(System.getProperty("java.home"), "bin",
+                System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java");
+        // Java rejects the internal app argument and exits without ever loading Steam.
+        final var previous = System.setProperty(LAUNCHER_PROPERTY, java.toString());
+        try {
+            final var request = new Request(10, "76561198000000000", List.of("A"),
+                    Map.of("A", false), Map.of("A", true));
+            final var response = new NativeSteam().execute(request);
+            assertEquals(Status.UNKNOWN, response.status());
+            assertTrue(response.achievements().isEmpty());
+            assertTrue(response.message().contains("may still sync"));
         } finally {
             restore(previous);
         }

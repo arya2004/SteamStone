@@ -1,6 +1,7 @@
 package steamstone.steam;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.inject.Inject;
@@ -283,16 +284,14 @@ public final class SteamWebApi {
             final var bytes = response.body();
             if (bytes.length > MAX_RESPONSE_BYTES)
                 throw new StoneException("Steam's response was too large to load safely.");
-            try {
-                final var value = json.readTree(bytes);
-                if (value == null)
-                    throw new StoneException("Steam returned an empty response. Please retry.");
-                return value;
-            } catch (final IOException e) {
-                throw new StoneException("Steam returned an unexpected response. Please try again later.", e);
-            }
+            final var value = json.readTree(bytes);
+            if (value == null)
+                throw new StoneException("Steam returned an empty response. Please retry.");
+            return value;
         } catch (final InterruptedException e) {
             throw new StoneException("The Steam request was interrupted.", e);
+        } catch (final JsonProcessingException e) {
+            throw new StoneException("Steam returned an unexpected response. Please try again later.", e);
         } catch (final HttpTimeoutException e) {
             throw new StoneException("Steam took too long to respond. Check your connection and retry.", e);
         } catch (final IOException e) {

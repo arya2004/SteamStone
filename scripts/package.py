@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
 # Keep this stable so later Windows installers recognize the existing installation.
@@ -65,6 +66,25 @@ def install_native_files(stage, system):
                     count += 1
     if count == 0:
         raise SystemExit("JavaFX native files are missing from this platform's dependencies.")
+
+
+def runtime_dependencies(jar):
+    """Use Maven's resolved manifest rather than stale JARs left by an earlier build."""
+    with zipfile.ZipFile(jar) as contents:
+        manifest = contents.read("META-INF/MANIFEST.MF").decode("utf-8")
+    manifest = manifest.replace("\r\n ", "").replace("\n ", "")
+    classpath = next((line.removeprefix("Class-Path: ") for line in manifest.splitlines()
+                      if line.startswith("Class-Path: ")), "")
+    if not classpath:
+        raise SystemExit("The application JAR has no runtime classpath. Run Maven verify before packaging.")
+    dependencies = []
+    for entry in classpath.split():
+        relative = Path(unquote(entry))
+        dependency = jar.parent / relative
+        if relative.parent != Path("lib") or relative.suffix != ".jar" or not dependency.is_file():
+            raise SystemExit(f"Missing or invalid runtime dependency: {entry}. Run Maven verify before packaging.")
+        dependencies.append(dependency)
+    return dependencies
 
 
 def packaging_icon(system):
@@ -166,7 +186,7 @@ def main():
         shutil.rmtree(stage)
     (stage / "lib").mkdir(parents=True)
     shutil.copy2(jar, stage)
-    for dependency in (ROOT / "target/lib").glob("*.jar"):
+    for dependency in runtime_dependencies(jar):
         shutil.copy2(dependency, stage / "lib")
     install_native_files(stage, system)
     for name in ("LICENSE.md", "README.md"):

@@ -27,7 +27,18 @@
         <lombok.version>1.18.48</lombok.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <guice.version>7.0.0</guice.version>
+        <guava.version>33.5.0-jre</guava.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Guice 7 otherwise selects Guava 31, which uses deprecated Unsafe memory access. -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>com.google.inject</groupId>

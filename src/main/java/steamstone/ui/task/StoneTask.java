@@ -19,10 +19,8 @@ public final class StoneTask<T> extends Task<T> {
     protected T call() {
         try {
             return operation.get();
-        } catch (final StoneException e) {
-            throw new StoneException(e.getMessage(), e);
         } catch (final RuntimeException e) {
-            throw new StoneException("The background operation failed.", e);
+            throw StoneException.wrap("The background operation failed.", e);
         }
     }
 }
