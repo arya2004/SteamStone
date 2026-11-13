@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -17,7 +18,7 @@ public final class WorkerFiles implements AutoCloseable {
         try {
             directory = Files.createTempDirectory(prefix).toAbsolutePath().normalize();
         } catch (final IOException e) {
-            throw new StoneException("Could not create the Steam worker's temporary directory.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -32,7 +33,7 @@ public final class WorkerFiles implements AutoCloseable {
                 Files.deleteIfExists(path);
             }
         } catch (final IOException e) {
-            throw new StoneException("Could not remove the Steam worker's temporary files.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 }

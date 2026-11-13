@@ -1,5 +1,6 @@
 package steamstone.steam.nativeapi.worker;
 
+import steamstone.exception.ErrorCode;
 import com.codedisaster.steamworks.SteamAPI;
 import com.codedisaster.steamworks.SteamUser;
 import com.codedisaster.steamworks.SteamUserStats;
@@ -22,7 +23,7 @@ public final class NativeSession implements AutoCloseable {
             utils = new SteamUtils(new SteamUtilsEvents());
             stats = new SteamUserStats(callback);
         } catch (final RuntimeException | LinkageError e) {
-            throw ResourceCleanup.afterFailure("Could not create the native Steam session.", e, this::close);
+            throw ResourceCleanup.afterFailure(ErrorCode.STEAM_SESSION, e, this::close);
         }
     }
 

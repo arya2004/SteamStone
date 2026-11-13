@@ -10,6 +10,7 @@ import java.util.Map;
 import lombok.Value;
 import lombok.experimental.Accessors;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -52,7 +53,7 @@ public final class Request {
             this.expected = Map.copyOf(expected);
             this.changes = Map.copyOf(changes);
         } catch (final NullPointerException e) {
-            throw new StoneException("Native request collections must not contain null values.", e);
+            throw new StoneException(ErrorCode.INVALID_INPUT, e);
         }
         if (appId <= 0 || appId > MAX_APP_ID || steamId == null ||
                 !steamId.matches(SteamConstants.STEAM_ID_PATTERN)
@@ -61,7 +62,7 @@ public final class Request {
                 || this.ids.stream().distinct().count() != this.ids.size()
                 || !this.ids.containsAll(this.changes.keySet())
                 || !this.expected.keySet().containsAll(this.changes.keySet())) {
-            throw new StoneException("Invalid native request context.");
+            throw new StoneException(ErrorCode.INVALID_INPUT);
         }
     }
 }

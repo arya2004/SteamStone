@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamApiFixtureModule;
 import steamstone.inject.SteamStoneModule;
@@ -75,7 +76,7 @@ public class SteamWebApiTest {
                     }
 
                 } catch (final IOException e) {
-                    throw new StoneException("Could not serve the fixture HTTP response.", e);
+                    throw new StoneException(ErrorCode.APPLICATION, e);
                 }
             });
             server.start();
@@ -84,7 +85,7 @@ public class SteamWebApiTest {
                     .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
         } catch (final IOException e) {
-            throw new StoneException("Could not start the fixture HTTP server.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -126,7 +127,7 @@ public class SteamWebApiTest {
     public void doesNotTreatAPrivateOrUnavailableLibraryAsEmpty() {
         ownedBody = "{\"response\":{}}";
         final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
-        assertTrue(error.getMessage().contains("did not expose"));
+        assertEquals(ErrorCode.STEAM_API, error.code());
     }
 
     @Test
@@ -139,14 +140,14 @@ public class SteamWebApiTest {
     public void rejectsIncompleteSnapshots() {
         ownedBody = "{\"response\":{\"game_count\":3,\"games\":[{\"appid\":10,\"name\":\"One\"}]}}";
         final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
-        assertTrue(error.getMessage().contains("partial"));
+        assertEquals(ErrorCode.STEAM_API, error.code());
     }
 
     @Test
     public void rejectsMalformedAndInvalidGameData() {
         ownedBody = "not-json";
         final var e = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
-        assertTrue(e.getMessage().contains("unexpected response"));
+        assertEquals(ErrorCode.STEAM_API, e.code());
         assertInstanceOf(JsonProcessingException.class, e.getCause());
         ownedBody = "{\"response\":{\"game_count\":1,\"games\":[{\"appid\":-1}]}}";
         assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
@@ -158,6 +159,8 @@ public class SteamWebApiTest {
             ownedStatus = status;
             ownedBody = "REMOTE BODY THAT MUST NEVER BE SHOWN " + KEY;
             final var error = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+            assertEquals(ErrorCode.STEAM_API, error.code());
+            assertEquals(ErrorCode.STEAM_API.message(), error.getMessage());
             assertFalse(error.getMessage().contains(KEY));
             assertFalse(error.getMessage().contains("REMOTE BODY"));
         }
@@ -176,6 +179,7 @@ public class SteamWebApiTest {
         Thread.currentThread().interrupt();
         try {
             final var failure = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+            assertEquals(ErrorCode.CANCELLED, failure.code());
             assertTrue(failure.getCause() instanceof InterruptedException);
             assertTrue(Thread.currentThread().isInterrupted());
         } finally {

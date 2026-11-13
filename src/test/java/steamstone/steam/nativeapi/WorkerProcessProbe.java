@@ -1,5 +1,6 @@
 package steamstone.steam.nativeapi;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -11,7 +12,7 @@ public final class WorkerProcessProbe {
         try {
             Thread.sleep(30000);
         } catch (final InterruptedException e) {
-            throw new StoneException("The process fixture was interrupted.", e);
+            throw new StoneException(ErrorCode.CANCELLED, e);
         }
     }
 }

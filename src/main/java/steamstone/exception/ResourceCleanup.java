@@ -11,8 +11,8 @@ public final class ResourceCleanup {
         }
     }
 
-    public static StoneException afterFailure(final String message, final Throwable cause, final Runnable... actions) {
-        return release(StoneException.wrap(message, cause), actions);
+    public static StoneException afterFailure(final ErrorCode code, final Throwable cause, final Runnable... actions) {
+        return release(StoneException.wrap(code, cause), actions);
     }
 
     private static StoneException release(final StoneException primary, final Runnable... actions) {
@@ -22,7 +22,7 @@ public final class ResourceCleanup {
                 action.run();
             } catch (final Throwable e) {
                 if (failure == null) {
-                    failure = StoneException.wrap("Could not release application resources.", e);
+                    failure = StoneException.wrap(ErrorCode.APPLICATION, e);
                 } else if (e != failure) {
                     failure.addSuppressed(e);
                 }

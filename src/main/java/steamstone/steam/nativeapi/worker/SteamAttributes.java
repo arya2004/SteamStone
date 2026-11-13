@@ -8,6 +8,7 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.exception.ResourceCleanup;
 import steamstone.model.achievement.AchievementState;
@@ -44,7 +45,7 @@ public final class SteamAttributes implements AutoCloseable {
                     FunctionDescriptor.of(ADDRESS));
             stats = (MemorySegment) getter.invokeExact();
             if (stats.equals(MemorySegment.NULL))
-                throw new StoneException("Steam stats interface unavailable.");
+                throw new StoneException(ErrorCode.STEAM_SESSION);
             attribute = linker.downcallHandle(
                     symbols.find(ACHIEVEMENT_ATTRIBUTE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS));
@@ -52,7 +53,7 @@ public final class SteamAttributes implements AutoCloseable {
                     symbols.find(ACHIEVEMENT_STATE_SYMBOL).orElseThrow(),
                     FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
         } catch (final Throwable e) {
-            throw ResourceCleanup.afterFailure("Could not initialize Steam achievement reads.", e, arena::close);
+            throw ResourceCleanup.afterFailure(ErrorCode.STEAM_SESSION, e, arena::close);
         }
     }
 
@@ -71,7 +72,7 @@ public final class SteamAttributes implements AutoCloseable {
                     description,
                     valid ? Integer.toUnsignedLong(time.get(JAVA_INT, VALUE_OFFSET)) : UNKNOWN_UNLOCK_TIME);
         } catch (final Throwable e) {
-            throw StoneException.wrap("Steam achievement read failed.", e);
+            throw StoneException.wrap(ErrorCode.STEAM_SESSION, e);
         }
     }
 

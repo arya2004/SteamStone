@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamApiFixtureModule;
 import steamstone.inject.SteamStoneModule;
@@ -20,7 +21,6 @@ import steamstone.inject.SteamStoneInjector;
 import steamstone.model.achievement.AchievementState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,7 +61,7 @@ public class AchievementApiTest {
                     }
 
                 } catch (final IOException e) {
-                    throw new StoneException("Could not serve the fixture HTTP response.", e);
+                    throw new StoneException(ErrorCode.APPLICATION, e);
                 }
             });
             server.start();
@@ -70,7 +70,7 @@ public class AchievementApiTest {
                     .with(new SteamApiFixtureModule(base))).getInstance(SteamWebApi.class);
 
         } catch (final IOException e) {
-            throw new StoneException("Could not start the fixture HTTP server.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -88,7 +88,7 @@ public class AchievementApiTest {
         assertEquals(12345, first.unlockTime());
         assertEquals(AchievementState.LOCKED, result.achievements().get(1).state());
         assertEquals("", result.achievements().get(1).description());
-        assertTrue(result.notice().isBlank());
+        assertEquals(ErrorCode.NONE, result.errorCode());
         assertTrue(credentialsCorrect);
         assertEquals(2, calls.get());
         assertThrows(UnsupportedOperationException.class, () -> result.achievements().clear());
@@ -100,7 +100,7 @@ public class AchievementApiTest {
         final var result = api.loadAchievements(KEY, ID, 10);
         assertEquals(2, result.achievements().size());
         assertTrue(result.achievements().stream().allMatch((final var a) -> a.state() == AchievementState.UNKNOWN));
-        assertFalse(result.notice().isBlank());
+        assertEquals(ErrorCode.STEAM_API, result.errorCode());
     }
 
     @Test
@@ -110,7 +110,7 @@ public class AchievementApiTest {
                 """;
         final var result = api.loadAchievements(KEY, ID, 10);
         assertTrue(result.achievements().stream().allMatch((final var a) -> a.state() == AchievementState.UNKNOWN));
-        assertFalse(result.notice().isBlank());
+        assertEquals(ErrorCode.STEAM_API, result.errorCode());
     }
 
     @Test

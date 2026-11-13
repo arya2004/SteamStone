@@ -5,6 +5,7 @@ import java.net.URI;
 import lombok.Value;
 import lombok.experimental.Accessors;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -37,7 +38,7 @@ public final class SteamProfile {
 
     public static SteamProfile parse(final String input) {
         if (input == null || input.isBlank()) {
-            throw new StoneException("Enter your Steam profile URL or 17-digit SteamID64.");
+            throw new StoneException(ErrorCode.INVALID_INPUT);
         }
         final var stripped = input.strip();
         if (stripped.matches(SteamConstants.STEAM_ID_PATTERN)) {
@@ -50,14 +51,14 @@ public final class SteamProfile {
             try {
                 uri = URI.create(value);
             } catch (final IllegalArgumentException e) {
-                throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.", e);
+                throw new StoneException(ErrorCode.INVALID_INPUT, e);
             }
             // Never send the API key to a user-provided host.
             if (!HTTPS_SCHEME.equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null ||
                     uri.getPort() != DEFAULT_PORT
                     || !(COMMUNITY_HOST.equalsIgnoreCase(uri.getHost())
                     || WWW_COMMUNITY_HOST.equalsIgnoreCase(uri.getHost()))) {
-                throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.");
+                throw new StoneException(ErrorCode.INVALID_INPUT);
             }
             final var parts = uri.getPath().replaceAll(TRAILING_SLASH_PATTERN, EMPTY_VALUE).split(PATH_SEPARATOR);
             if (parts.length == PROFILE_PATH_PART_COUNT) {
@@ -69,12 +70,12 @@ public final class SteamProfile {
                     return new SteamProfile(parts[PROFILE_VALUE_INDEX], true);
                 }
             }
-            throw new StoneException("Use a Steam Community /id/ or /profiles/ URL.");
+            throw new StoneException(ErrorCode.INVALID_INPUT);
         }
         if (validVanity(value) && !value.matches(NUMERIC_INPUT_PATTERN)) {
             return new SteamProfile(value, true);
         }
-        throw new StoneException("Use your profile URL, vanity name, or 17-digit SteamID64.");
+        throw new StoneException(ErrorCode.INVALID_INPUT);
     }
 
     private static boolean validVanity(final String value) {

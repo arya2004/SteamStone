@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.protocol.Request;
 import steamstone.steam.nativeapi.protocol.Response;
@@ -47,29 +48,22 @@ public final class NativeSteam {
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             builder.redirectError(ProcessBuilder.Redirect.DISCARD);
             try (final var process = new WorkerProcess(builder)) {
-                if (!process.await(SESSION_TIMEOUT_SECONDS)) {
+                if (!process.await(SESSION_TIMEOUT_SECONDS) || process.exitValue() != SUCCESS_EXIT_CODE
+                        || !Files.isRegularFile(output)) {
                     return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
-                            "Steam session timed out. Changes may still sync; reload before retrying.", Map.of());
-                }
-                if (process.exitValue() != SUCCESS_EXIT_CODE || !Files.isRegularFile(output)) {
-                    return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
-                            "Could not confirm the Steam session result. Keep Steam running, sign in to the "
-                                    + "selected account, and reload before retrying; changes may still sync.",
-                            Map.of());
+                            ErrorCode.STEAM_STORAGE, Map.of());
                 }
                 if (Files.size(output) > MAX_RESPONSE_BYTES) {
-                    throw new StoneException("Steam worker exited without a valid result. Reload before retrying; "
-                            + "changes may still sync.");
+                    throw new StoneException(ErrorCode.STEAM_STORAGE);
                 }
                 final var result = json.readValue(output.toFile(), Response.class);
                 if (result.appId() != request.appId() || !result.steamId().equals(request.steamId())) {
-                    throw new StoneException("Steam worker returned a different account/game context.");
+                    throw new StoneException(ErrorCode.STEAM_STORAGE);
                 }
                 return result;
             }
         } catch (final IOException e) {
-            throw new StoneException("Could not exchange the Steam worker result. Changes may still sync; reload "
-                    + "before retrying.", e);
+            throw new StoneException(ErrorCode.STEAM_STORAGE, e);
         }
     }
 
@@ -84,10 +78,10 @@ public final class NativeSteam {
             builder.environment().remove(JPACKAGE_LAUNCHER_ENV);
             try (final var process = new WorkerProcess(builder)) {
                 if (!process.await(RUNTIME_CHECK_TIMEOUT_SECONDS)) {
-                    throw new StoneException("Bundled worker check timed out.");
+                    throw new StoneException(ErrorCode.NATIVE_RUNTIME);
                 }
                 if (process.exitValue() != SUCCESS_EXIT_CODE) {
-                    throw new StoneException("Bundled Steam worker check failed.");
+                    throw new StoneException(ErrorCode.NATIVE_RUNTIME);
                 }
             }
         }

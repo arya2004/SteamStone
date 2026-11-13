@@ -6,6 +6,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.ProvisionException;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.ui.library.LibraryView;
 
@@ -26,7 +27,7 @@ public final class SteamStoneInjector {
         try {
             return Guice.createInjector(modules);
         } catch (final CreationException e) {
-            throw new StoneException("Could not configure SteamStone's dependencies.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -34,7 +35,7 @@ public final class SteamStoneInjector {
         try {
             return create().getInstance(LibraryView.class);
         } catch (final ProvisionException e) {
-            throw new StoneException("Could not initialize SteamStone's interface.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 }

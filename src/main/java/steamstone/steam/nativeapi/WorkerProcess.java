@@ -3,6 +3,7 @@ package steamstone.steam.nativeapi;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 public final class WorkerProcess implements AutoCloseable {
@@ -14,7 +15,7 @@ public final class WorkerProcess implements AutoCloseable {
         try {
             process = builder.start();
         } catch (final IOException e) {
-            throw new StoneException("Could not start the Steam worker.", e);
+            throw new StoneException(ErrorCode.STEAM_STORAGE, e);
         }
     }
 
@@ -22,7 +23,7 @@ public final class WorkerProcess implements AutoCloseable {
         try {
             return process.waitFor(seconds, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
-            throw new StoneException("Waiting for the Steam worker was interrupted. Changes may still sync.",
+            throw new StoneException(ErrorCode.CANCELLED,
                     e);
         }
     }
@@ -36,7 +37,7 @@ public final class WorkerProcess implements AutoCloseable {
         if (process.isAlive()) {
             process.destroyForcibly();
             if (!await(SHUTDOWN_TIMEOUT_SECONDS)) {
-                throw new StoneException("The Steam worker did not stop. Changes may still sync.");
+                throw new StoneException(ErrorCode.STEAM_STORAGE);
             }
         }
     }

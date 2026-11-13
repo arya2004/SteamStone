@@ -3,6 +3,7 @@ package steamstone.concurrent;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -14,8 +15,7 @@ public final class StoneFutures {
         try {
             return future.join();
         } catch (final CompletionException e) {
-            final var cause = e.getCause();
-            throw StoneException.wrap("The operation failed.", cause == null ? e : cause);
+            throw StoneException.wrap(ErrorCode.APPLICATION, e);
         }
     }
 }

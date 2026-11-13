@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.protocol.Request;
@@ -13,7 +14,6 @@ import steamstone.steam.nativeapi.protocol.Status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AchievementCommitTest {
     private static final String ACCOUNT = "76561198000000000";
@@ -93,7 +93,7 @@ public class AchievementCommitTest {
         steam.timeout = true;
         final var failure = assertThrows(StoneException.class,
                 () -> new AchievementCommit().execute(request(Map.of("A", false), Map.of("A", true)), steam));
-        assertTrue(failure.getMessage().contains("may still sync"));
+        assertEquals(ErrorCode.STEAM_STORAGE, failure.code());
         assertInstanceOf(TimeoutException.class, failure.getCause());
         assertEquals(AchievementState.UNLOCKED, steam.states.get("A"));
     }

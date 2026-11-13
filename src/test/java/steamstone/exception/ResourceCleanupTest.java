@@ -34,9 +34,9 @@ public final class ResourceCleanupTest {
 
     @Test
     public void initializationFailureRemainsPrimaryWhenCleanupAlsoFails() {
-        final var original = new StoneException("Initialization failed.");
+        final var original = new StoneException(ErrorCode.APPLICATION);
         final var cleanup = new IllegalStateException("Release failed.");
-        final var e = ResourceCleanup.afterFailure("Fallback context.", original, () -> {
+        final var e = ResourceCleanup.afterFailure(ErrorCode.APPLICATION, original, () -> {
             throw cleanup;
         });
         assertSame(original, e);
@@ -45,8 +45,8 @@ public final class ResourceCleanupTest {
 
     @Test
     public void repeatedFailureDoesNotAttemptSelfSuppression() {
-        final var original = new StoneException("Repeated release failure.");
-        assertSame(original, ResourceCleanup.afterFailure("Fallback.", original, () -> {
+        final var original = new StoneException(ErrorCode.APPLICATION);
+        assertSame(original, ResourceCleanup.afterFailure(ErrorCode.APPLICATION, original, () -> {
             throw original;
         }));
         assertEquals(0, original.getSuppressed().length);

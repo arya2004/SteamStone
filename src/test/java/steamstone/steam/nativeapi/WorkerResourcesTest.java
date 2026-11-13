@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,7 +24,7 @@ public final class WorkerResourcesTest {
             Files.writeString(nested.resolve("response.json"), "{}");
             assertTrue(Files.isRegularFile(nested.resolve("response.json")));
         } catch (final IOException e) {
-            throw new StoneException("Could not prepare the cleanup fixture.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
         assertFalse(Files.exists(directory));
     }

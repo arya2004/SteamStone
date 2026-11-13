@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.commit.AchievementCommit;
 import steamstone.steam.nativeapi.protocol.Request;
@@ -48,7 +49,7 @@ public final class NativeWorker {
             return;
         }
         if (args.length != PROTOCOL_ARGUMENT_COUNT) {
-            throw new StoneException("Expected request and response paths.");
+            throw new StoneException(ErrorCode.INVALID_INPUT);
         }
         final var json = new ObjectMapper();
         try {
@@ -56,7 +57,7 @@ public final class NativeWorker {
                     json.readValue(Path.of(args[FIRST_ARGUMENT_INDEX]).toFile(), Request.class);
             json.writeValue(Path.of(args[RESPONSE_ARGUMENT_INDEX]).toFile(), run(request));
         } catch (final IOException e) {
-            throw new StoneException("Could not read or write the Steam worker protocol files.", e);
+            throw new StoneException(ErrorCode.STEAM_SESSION, e);
         }
     }
 
@@ -67,12 +68,12 @@ public final class NativeWorker {
             final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
             for (final var symbol : REQUIRED_SYMBOLS) {
                 if (symbols.find(symbol).isEmpty()) {
-                    throw new StoneException("Missing Steam API symbol: " + symbol);
+                    throw new StoneException(ErrorCode.NATIVE_RUNTIME);
                 }
             }
             System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
         } catch (final RuntimeException | LinkageError e) {
-            throw StoneException.wrap("Could not load the bundled Steam native runtime.", e);
+            throw StoneException.wrap(ErrorCode.NATIVE_RUNTIME, e);
         }
     }
 
@@ -83,8 +84,7 @@ public final class NativeWorker {
             final var result = SteamAPI.initEx();
             if (result != SteamAPI.InitResult.OK) {
                 return new Response(request.appId(), request.steamId(), Status.REJECTED,
-                        "Steam initialization failed (" + result
-                                + "). Keep Steam running and check this game's local Steam availability.", Map.of());
+                        ErrorCode.STEAM_SESSION, Map.of());
             }
             try (final var session = new NativeSession(request.appId());
                  final var attributes = new SteamAttributes(loader.path(LIBRARY_NAME))) {
@@ -93,8 +93,7 @@ public final class NativeWorker {
                 if (Integer.toUnsignedLong(session.utils().getAppID()) != request.appId()
                         || !actualUser.equals(request.steamId())) {
                     return new Response(request.appId(), request.steamId(), Status.REJECTED,
-                            "The running Steam account or game does not match this editor. No changes were applied.",
-                            Map.of());
+                            ErrorCode.STEAM_SESSION, Map.of());
                 }
                 // Since SDK 1.61, Steam preloads current-user stats at initialization.
                 final var deadline = System.nanoTime() + INITIAL_STATS_TIMEOUT.toNanos();
@@ -108,7 +107,7 @@ public final class NativeWorker {
                         new NativeAchievementStats(session.stats(), attributes, session.callback()));
             }
         } catch (final SteamException | InterruptedException | RuntimeException | LinkageError e) {
-            throw StoneException.wrap("Could not complete the Steam session. Changes may still sync.", e);
+            throw StoneException.wrap(ErrorCode.STEAM_SESSION, e);
         }
     }
 }

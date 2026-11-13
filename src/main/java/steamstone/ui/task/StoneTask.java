@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -20,7 +21,7 @@ public final class StoneTask<T> extends Task<T> {
         try {
             return operation.get();
         } catch (final RuntimeException e) {
-            throw StoneException.wrap("The background operation failed.", e);
+            throw StoneException.wrap(ErrorCode.APPLICATION, e);
         }
     }
 }

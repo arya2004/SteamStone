@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamStoneInjector;
 import steamstone.model.Game;
@@ -48,7 +49,7 @@ public final class CheckApplication extends Application {
             stage.setTitle("SteamStone — UI verification");
             AppIcon.apply(stage);
             if (stage.getIcons().isEmpty() || stage.getIcons().stream().anyMatch((final var icon) -> icon.isError())) {
-                throw new StoneException("The window icon did not load.");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             stage.setScene(scene);
             stage.show();
@@ -68,7 +69,7 @@ public final class CheckApplication extends Application {
                     final var matcher =
                             Pattern.compile("(?<![a-fA-F0-9])[a-fA-F0-9]{32}(?![a-fA-F0-9])").matcher(contents);
                     if (!matcher.find())
-                        throw new StoneException("No key found in the supplied test file.");
+                        throw new StoneException(ErrorCode.APPLICATION);
                     ((PasswordField) view.lookup("#api-key")).setText(matcher.group());
                     ((TextField) view.lookup("#steam-profile")).setText(profile);
                     ((Button) view.lookup("#load-library")).fire();
@@ -77,13 +78,13 @@ public final class CheckApplication extends Application {
                     poll.play();
                 } catch (final Exception e) {
                     fail();
-                    throw new StoneException("UI verification failed.", e);
+                    throw new StoneException(ErrorCode.APPLICATION, e);
                 }
             });
             initial.play();
 
         } catch (final IOException e) {
-            throw new StoneException("Could not initialize UI verification output.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -99,9 +100,9 @@ public final class CheckApplication extends Application {
         try {
             final var list = (ListView<Game>) view.lookup("#game-list");
             if (list.getItems().isEmpty())
-                throw new StoneException("No UI rows loaded");
+                throw new StoneException(ErrorCode.APPLICATION);
             if (!((PasswordField) view.lookup("#api-key")).getText().isEmpty())
-                throw new StoneException("Key field not cleared");
+                throw new StoneException(ErrorCode.APPLICATION);
             final var selected = list.getItems().get(1);
             if (!selectedGame) {
                 list.getSelectionModel().select(selected);
@@ -113,26 +114,26 @@ public final class CheckApplication extends Application {
                 return;
             poll.stop();
             if (!((Label) view.lookup("#editor-game-name")).getText().equals(selected.name())) {
-                throw new StoneException("Sidebar selection did not update editor context");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             if (list.localToScene(list.getBoundsInLocal()).getMinX() > 300) {
-                throw new StoneException("Game list is not in the sidebar");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             view.applyCss();
             view.layout();
             if (achievements.localToScene(achievements.getBoundsInLocal()).getMinY() > 90) {
-                throw new StoneException("Editor header takes too much space");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             if (achievements.getFixedCellSize() > 60)
-                throw new StoneException("Rows are not compact");
+                throw new StoneException(ErrorCode.APPLICATION);
             snapshot(output.resolve("library.png"));
             final var unlockAll = (Button) view.lookup("#unlock-all");
             if (unlockAll.isDisabled())
-                throw new StoneException("Native edit session is unavailable");
+                throw new StoneException(ErrorCode.APPLICATION);
             final var rows = (ListView<Achievement>) achievements;
             if (rows.getItems().getFirst().description().isBlank()
                     || rows.getItems().getFirst().description().equals("Hidden achievement")) {
-                throw new StoneException("Actual achievement description missing");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             final var lockAll = (Button) view.lookup("#lock-all");
             unlockAll.fire();
@@ -142,28 +143,28 @@ public final class CheckApplication extends Application {
                 unlockAll.fire();
             }
             if (commit.isDisabled())
-                throw new StoneException("No local preview changes produced");
+                throw new StoneException(ErrorCode.APPLICATION);
             // Commit is real now. This read-only check must never fire it.
             ((Button) view.lookup("#reset-preview")).fire();
             if (!commit.isDisabled()) {
-                throw new StoneException("Reset did not clear preview");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             final var checkbox = (CheckBox) achievements.lookup(".check-box");
             if (checkbox == null || checkbox.isDisabled())
-                throw new StoneException("No editable visible checkbox");
+                throw new StoneException(ErrorCode.APPLICATION);
             checkbox.fire();
             if (commit.isDisabled()) {
-                throw new StoneException("Checkbox did not stage a preview");
+                throw new StoneException(ErrorCode.APPLICATION);
             }
             ((Button) view.lookup("#reset-preview")).fire();
             final var total = list.getItems().size();
             final var search = (TextField) view.lookup("#search-games");
             search.setText(Long.toString(list.getItems().getFirst().appId()));
             if (list.getItems().isEmpty() || list.getItems().size() > total)
-                throw new StoneException("Search failed");
+                throw new StoneException(ErrorCode.APPLICATION);
             search.clear();
             if (list.getItems().size() != total)
-                throw new StoneException("Search clear did not restore rows");
+                throw new StoneException(ErrorCode.APPLICATION);
             System.out.println(
                     "Graphical live check passed: " + total + " games; " + achievements.getItems().size() +
                             " achievements; checkbox, bulk preview, pending commit enablement (no write), reset, " +
@@ -172,7 +173,7 @@ public final class CheckApplication extends Application {
             Platform.exit();
         } catch (final Throwable e) {
             fail();
-            throw new StoneException("UI verification failed.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -191,7 +192,7 @@ public final class CheckApplication extends Application {
             ImageIO.write(image, "png", path.toFile());
 
         } catch (final IOException e) {
-            throw new StoneException("Could not write the UI verification snapshot.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 

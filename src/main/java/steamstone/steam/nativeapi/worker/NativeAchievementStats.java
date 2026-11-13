@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 
 import lombok.RequiredArgsConstructor;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.commit.AchievementStats;
 import steamstone.steam.nativeapi.protocol.Entry;
@@ -46,11 +47,11 @@ public final class NativeAchievementStats implements AchievementStats {
                 Thread.sleep(CALLBACK_POLL_INTERVAL_MILLIS);
             }
             if (callback.result() == null) {
-                throw new StoneException("Storage callback timed out. Changes may still sync; reload before retrying.");
+                throw new StoneException(ErrorCode.STEAM_STORAGE);
             }
             return callback.result() == SteamResult.OK;
         } catch (final InterruptedException e) {
-            throw new StoneException("Waiting for Steam storage was interrupted. Changes may still sync.", e);
+            throw new StoneException(ErrorCode.CANCELLED, e);
         } finally {
             callback.end();
         }

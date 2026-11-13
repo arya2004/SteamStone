@@ -3,6 +3,7 @@ package steamstone.steam.nativeapi.commit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.protocol.Entry;
@@ -18,16 +19,14 @@ public final class AchievementCommit {
     public Response execute(final Request request, final AchievementStats stats) {
         final var before = readAll(request, stats);
         if (request.changes().isEmpty())
-            return response(request, Status.READ, "", before);
+            return response(request, Status.READ, before);
         for (final var change : request.changes().entrySet()) {
             final var entry = before.get(change.getKey());
             if (entry.state() == AchievementState.UNKNOWN) {
-                return response(request, Status.REJECTED,
-                        "Steam could not read a requested achievement. Reload before editing.", before);
+                return response(request, Status.REJECTED, before);
             }
             if ((entry.state() == AchievementState.UNLOCKED) != request.expected().get(change.getKey())) {
-                return response(request, Status.CONFLICT,
-                        "Steam's state changed since loading. Review the refreshed states and try again.", before);
+                return response(request, Status.CONFLICT, before);
             }
         }
         final var outcomes = request.changes().entrySet().stream()
@@ -35,18 +34,15 @@ public final class AchievementCommit {
         final var accepted = outcomes.stream().filter(Boolean::booleanValue).count();
         final var rejected = outcomes.size() - accepted;
         if (accepted == 0)
-            return response(request, Status.REJECTED, "Steam rejected the changes. No achievement was confirmed saved.",
-                    before);
+            return response(request, Status.REJECTED, before);
         final boolean stored;
         try {
             stored = stats.storeAndWait();
         } catch (final RuntimeException e) {
-            throw StoneException.wrap("Steam did not confirm storage. Some changes may still sync. "
-                    + "Reload before retrying.", e);
+            throw StoneException.wrap(ErrorCode.STEAM_STORAGE, e);
         }
         if (!stored)
-            return response(request, Status.UNKNOWN,
-                    "Steam rejected storage. Some changes may still sync on exit. Reload before retrying.", before);
+            return response(request, Status.UNKNOWN, before);
         final var after = readAll(request, stats);
         final var matching = request.changes().entrySet().stream().filter((final var change) -> {
             final var entry = after.get(change.getKey());
@@ -54,10 +50,7 @@ public final class AchievementCommit {
                     && (entry.state() == AchievementState.UNLOCKED) == change.getValue();
         }).count();
         final var complete = rejected == 0 && matching == request.changes().size();
-        return response(request, complete ? Status.CONFIRMED : Status.PARTIAL,
-                complete ? "Saved " + matching + " achievement change(s) to Steam."
-                        : "Steam confirmed storage; " + matching + " of " + request.changes().size()
-                        + " requested states matched readback. Unmatched changes remain pending.", after);
+        return response(request, complete ? Status.CONFIRMED : Status.PARTIAL, after);
     }
 
     private Map<String, Entry> readAll(final Request request, final AchievementStats stats) {
@@ -67,8 +60,10 @@ public final class AchievementCommit {
         return entries;
     }
 
-    private Response response(final Request request, final Status status, final String message,
+    private Response response(final Request request, final Status status,
                               final Map<String, Entry> entries) {
-        return new Response(request.appId(), request.steamId(), status, message, entries);
+        final var code = status == Status.READ || status == Status.CONFIRMED
+                ? ErrorCode.NONE : ErrorCode.STEAM_STORAGE;
+        return new Response(request.appId(), request.steamId(), status, code, entries);
     }
 }

@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 
 import steamstone.concurrent.StoneFutures;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.Game;
 import steamstone.model.achievement.Achievement;
@@ -158,7 +159,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         final var next = new StoneTask<>(() -> {
             final var web = api.loadAchievements(requestKey, account, appId);
             if (Thread.currentThread().isInterrupted()) {
-                throw new StoneException("Achievement loading was cancelled.");
+                throw new StoneException(ErrorCode.CANCELLED);
             }
             if (web.achievements().isEmpty()) {
                 return new LoadedAchievements(web, false);
@@ -167,18 +168,17 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                     .thenApply((final var data) -> nativeSteam.execute(new Request(appId, account,
                             data.achievements().stream().map(Achievement::id).toList(), Map.of(), Map.of())))
                     .handle((final var response, final var e) -> {
-                        if (Thread.currentThread().isInterrupted()) {
-                            throw new StoneException("Achievement loading was cancelled.", e);
+                        if (Thread.currentThread().isInterrupted() || StoneException.codeOf(e) == ErrorCode.CANCELLED) {
+                            throw new StoneException(ErrorCode.CANCELLED, e);
                         }
                         if (e != null) {
                             return new LoadedAchievements(new AchievementList(web.achievements(),
-                                    "Native Steam session unavailable. Keep Steam running and sign in to this account; "
-                                            + "reload to enable editing."), false);
+                                    StoneException.codeOf(e)), false);
                         }
                         if (response.status() == Status.READ) {
-                            return new LoadedAchievements(merge(web.achievements(), response, ""), true);
+                            return new LoadedAchievements(merge(web.achievements(), response, ErrorCode.NONE), true);
                         }
-                        return new LoadedAchievements(new AchievementList(web.achievements(), response.message()),
+                        return new LoadedAchievements(new AchievementList(web.achievements(), response.errorCode()),
                                 false);
                     }));
         });
@@ -202,8 +202,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                 return;
             task = null;
             empty.setText("Achievements couldn't be loaded. Use Reload to try again.");
-            notice.setText(next.getException() instanceof StoneException ex ? ex.getMessage()
-                    : "Unable to load achievements. Please try again.");
+            notice.setText(StoneException.codeOf(next.getException()).message());
             updateControls();
         });
         requests.submit(next);
@@ -292,7 +291,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             if (response.status() == Status.UNKNOWN)
                 nativeReady = false;
             else if (!response.achievements().isEmpty()) {
-                final var snapshot = merge(preview.achievements(), response, response.message());
+                final var snapshot = merge(preview.achievements(), response, response.errorCode());
                 preview = new AchievementPreview(snapshot.achievements());
                 // Successful readbacks disappear from pending; rejected/unmatched intentions remain.
                 for (final var achievement : preview.achievements()) {
@@ -308,13 +307,14 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             commitTask = null;
             committing.set(false);
             nativeReady = false;
-            dataNotice = "Steam did not confirm the result. Changes may still sync; reload before retrying.";
+            dataNotice = ErrorCode.STEAM_STORAGE.message();
             changed();
         });
         requests.submit(next);
     }
 
-    private static AchievementList merge(final List<Achievement> source, final Response response, final String notice) {
+    private static AchievementList merge(final List<Achievement> source, final Response response,
+                                         final ErrorCode errorCode) {
         return new AchievementList(source.stream().map((final var achievement) -> {
             final var entry = response.achievements().get(achievement.id());
             if (entry == null)
@@ -323,7 +323,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             final var description = entry.description().isBlank() ? achievement.description() : entry.description();
             return new Achievement(achievement.id(), achievement.name(), description, entry.state(), entry.unlockTime(),
                     achievement.icon(), achievement.lockedIcon());
-        }).toList(), notice);
+        }).toList(), errorCode);
     }
 
     public Image icon(final Achievement achievement) {
@@ -343,7 +343,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                     || host.equals("steamcdn-a.akamaihd.net")))
                 return null;
         } catch (final IllegalArgumentException e) {
-            throw new StoneException("Steam supplied an invalid achievement image URL.", e);
+            throw new StoneException(ErrorCode.STEAM_API, e);
         }
         final var image = icons.computeIfAbsent(url, (final var value) -> new Image(value, 32, 32, true, true, true));
         if (icons.size() > 100) {

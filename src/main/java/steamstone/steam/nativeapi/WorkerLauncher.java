@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import steamstone.Main;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -39,7 +40,7 @@ public final class WorkerLauncher {
         if (installed != null) {
             final var launcher = Path.of(installed);
             if (!launcher.isAbsolute() || !Files.isRegularFile(launcher) || !Files.isExecutable(launcher)) {
-                throw new StoneException("The installed SteamStone launcher is unavailable. Reinstall the app.");
+                throw new StoneException(ErrorCode.NATIVE_RUNTIME);
             }
             command.add(launcher.normalize().toString());
         } else {
@@ -47,7 +48,7 @@ public final class WorkerLauncher {
                     ? WINDOWS_JAVA_EXECUTABLE : UNIX_JAVA_EXECUTABLE;
             final var java = Path.of(System.getProperty(JAVA_HOME_PROPERTY), JAVA_BIN_DIRECTORY, executable);
             if (!java.isAbsolute() || !Files.isExecutable(java)) {
-                throw new StoneException("The selected Java runtime is unavailable.");
+                throw new StoneException(ErrorCode.NATIVE_RUNTIME);
             }
             command.add(java.normalize().toString());
             command.add(ENABLE_NATIVE_ACCESS_OPTION);
@@ -59,7 +60,7 @@ public final class WorkerLauncher {
                     classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI())
                             .toAbsolutePath().normalize().toString());
                 } catch (final URISyntaxException e) {
-                    throw new StoneException("Could not locate the Steam worker's runtime classpath.", e);
+                    throw new StoneException(ErrorCode.NATIVE_RUNTIME, e);
                 }
             }
             command.add(String.join(File.pathSeparator, classpath));

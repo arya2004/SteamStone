@@ -2,6 +2,7 @@ package steamstone.ui;
 
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 import java.util.List;
@@ -16,16 +17,16 @@ public final class AppIcon {
     public static Image load(final double size) {
         final var resource = AppIcon.class.getResource(RESOURCE_PATH);
         if (resource == null) {
-            throw new StoneException("The bundled SteamStone icon is missing.");
+            throw new StoneException(ErrorCode.APPLICATION);
         }
         try {
             final var image = new Image(resource.toExternalForm(), size, size, true, true);
             if (image.isError()) {
-                throw new StoneException("Could not decode the SteamStone icon.", image.getException());
+                throw new StoneException(ErrorCode.APPLICATION, image.getException());
             }
             return image;
         } catch (final IllegalArgumentException e) {
-            throw new StoneException("Could not load the SteamStone icon.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 

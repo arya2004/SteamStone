@@ -3,6 +3,7 @@ package steamstone.steam;
 import java.util.List;
 import java.util.Map;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.NativeSteam;
@@ -21,9 +22,9 @@ public final class NativeReadCheck {
                 + "; descriptions=" +
                 result.achievements().values().stream().filter((final var a) -> !a.description().isBlank()).count());
         if (result.status() != Status.READ)
-            throw new StoneException(result.message());
+            throw new StoneException(result.errorCode());
         if (result.achievements().values().stream()
                 .anyMatch((final var a) -> a.state() == AchievementState.UNKNOWN))
-            throw new StoneException("Native states unavailable.");
+            throw new StoneException(ErrorCode.APPLICATION);
     }
 }

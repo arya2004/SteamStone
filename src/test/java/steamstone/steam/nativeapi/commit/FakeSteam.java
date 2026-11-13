@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.model.achievement.AchievementState;
 import steamstone.steam.nativeapi.protocol.Entry;
@@ -36,7 +37,7 @@ public final class FakeSteam implements AchievementStats {
     public boolean storeAndWait() {
         stores++;
         if (timeout)
-            throw new StoneException("Storage timed out. Changes may still sync; reload before retrying.",
+            throw new StoneException(ErrorCode.STEAM_STORAGE,
                     new TimeoutException());
         return storageAccepted;
     }

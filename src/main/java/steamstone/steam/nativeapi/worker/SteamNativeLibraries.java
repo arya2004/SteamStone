@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 /**
@@ -38,7 +39,7 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
             // Development: target/classes -> target/native. Installed: app/steamstone.jar -> app/native.
             directory = application.getParent().resolve(NATIVE_DIRECTORY).toAbsolutePath().normalize();
         } catch (final URISyntaxException e) {
-            throw new StoneException("Could not locate the installed Steam libraries.", e);
+            throw new StoneException(ErrorCode.NATIVE_RUNTIME, e);
         }
     }
 
@@ -53,7 +54,7 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
         else if (os.contains(LINUX_OS_FRAGMENT) && (arch.equals(AMD64_ARCH) || arch.equals(X86_64_ARCH)))
             file = LIBRARY_PREFIX + name + LINUX_LIBRARY_EXTENSION;
         else
-            throw new StoneException("No bundled Steam native runtime for this OS/architecture.");
+            throw new StoneException(ErrorCode.NATIVE_RUNTIME);
         return directory.resolve(file);
     }
 
@@ -62,7 +63,7 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
         final var destination = path(name);
         if (!Files.isRegularFile(destination)) {
             throw new StoneException(
-                    "Steam native libraries are missing. Rebuild the project or reinstall SteamStone.");
+                    ErrorCode.NATIVE_RUNTIME);
         }
         System.load(destination.toAbsolutePath().toString());
         return true;

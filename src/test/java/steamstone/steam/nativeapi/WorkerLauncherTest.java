@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 import steamstone.Main;
+import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.steam.nativeapi.protocol.Request;
 import steamstone.steam.nativeapi.protocol.Status;
@@ -45,7 +46,7 @@ public final class WorkerLauncherTest {
                 restore(previous);
             }
         } catch (final IOException e) {
-            throw new StoneException("Could not prepare the launcher fixture.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         }
     }
 
@@ -97,7 +98,7 @@ public final class WorkerLauncherTest {
             final var response = new NativeSteam().execute(request);
             assertEquals(Status.UNKNOWN, response.status());
             assertTrue(response.achievements().isEmpty());
-            assertTrue(response.message().contains("may still sync"));
+            assertEquals(ErrorCode.STEAM_STORAGE, response.errorCode());
         } finally {
             restore(previous);
         }
@@ -120,7 +121,7 @@ public final class WorkerLauncherTest {
             }
             assertTrue(Files.readString(output).contains("no Steam session opened"));
         } catch (final IOException e) {
-            throw new StoneException("Could not prepare the worker dispatch check.", e);
+            throw new StoneException(ErrorCode.APPLICATION, e);
         } finally {
             restore(previous);
         }

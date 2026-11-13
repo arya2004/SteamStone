@@ -271,8 +271,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             currentTask = null;
             setBusy(false);
             hide(connectionStatus);
-            final var message = task.getException() instanceof StoneException ex ? ex.getMessage()
-                    : "The library couldn't be loaded. Please try again.";
+            final var message = StoneException.codeOf(task.getException()).message();
             if (library == null) {
                 connectionError.setText(message);
                 show(connectionError);
