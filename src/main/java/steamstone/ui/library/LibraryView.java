@@ -5,6 +5,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.OverrunStyle;
@@ -28,25 +30,33 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import lombok.RequiredArgsConstructor;
 
 import steamstone.exception.StoneException;
+import steamstone.exception.ErrorCode;
 import steamstone.model.Game;
 import steamstone.model.SteamLibrary;
 import steamstone.steam.SteamWebApi;
 import steamstone.ui.AppIcon;
 import steamstone.ui.achievement.AchievementEditor;
 import steamstone.ui.task.StoneTask;
+import steamstone.settings.ConnectionStore;
+import steamstone.settings.SavedConnection;
+import steamstone.ui.scroll.SmoothListViewSkin;
 
 /**
  * Owns this one screen's state. API requests run outside the JavaFX application thread.
  */
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class LibraryView extends BorderPane implements AutoCloseable {
+    private static final String API_KEY_URL = "https://steamcommunity.com/dev/apikey";
     private final SteamWebApi api;
+    private final ConnectionStore connection;
     private final ExecutorService requests = Executors.newSingleThreadExecutor(
             Thread.ofPlatform().daemon(true).name("steamstone-api").factory());
     private final PasswordField keyField = new PasswordField();
@@ -57,7 +67,8 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Label connectionError = new Label();
     private final Label connectionStatus = new Label();
     private final Label libraryStatus = new Label();
-    private final Label profileName = new Label();
+    private final Label profileName = new Label("Not connected");
+    private final CheckBox remember = new CheckBox("Save API key and profile on this device");
     private final Label gameCount = new Label("0");
     private final AchievementEditor editor;
     private final Provider<GameCell> cells;
@@ -67,18 +78,25 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
     private final StackPane screens = new StackPane();
     private final VBox connectionScreen = connectionScreen();
+    private final VBox restoringScreen = new VBox(label("Connecting to Steam…", "welcome-subtitle"));
     private SteamLibrary library;
     private Game selectedGame;
     private Task<SteamLibrary> currentTask;
     private String sessionKey;
     private String sessionProfile;
+    private Task<?> settingsTask;
+    private Consumer<String> browser = (final var url) -> {
+        throw new StoneException(ErrorCode.APPLICATION);
+    };
 
     @Inject
     private void initialize() {
         getStyleClass().add("app-root");
         setLeft(sidebar());
         getLeft().disableProperty().bind(editor.committingProperty());
-        screens.getChildren().addAll(connectionScreen, editor);
+        screens.getChildren().addAll(connectionScreen, editor, restoringScreen);
+        restoringScreen.setId("restoring-connection");
+        restoringScreen.setAlignment(Pos.CENTER);
         showLibrary(false);
 
         final var workspace = new VBox(0, screens);
@@ -90,10 +108,23 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         connectButton.setId("load-library");
         gameList.setId("game-list");
         gameCount.setId("game-count");
+        profileName.setId("active-account");
+        disconnectButton.setId("disconnect");
+        remember.setId("remember-account");
+        gameList.setSkin(new SmoothListViewSkin<>(gameList));
         connectButton.setOnAction((final var event) -> connect());
         profileField.setOnAction((final var event) -> connect());
         keyField.setOnAction((final var event) -> profileField.requestFocus());
-        refreshButton.setOnAction((final var event) -> load(sessionKey, sessionProfile));
+        remember.setOnAction((final var event) -> {
+            if (!remember.isSelected()) {
+                settings(() -> {
+                    connection.forget();
+                    return null;
+                }, (final var ignored) -> {
+                });
+            }
+        });
+        refreshButton.setOnAction((final var event) -> load(sessionKey, sessionProfile, false));
         disconnectButton.setOnAction((final var event) -> disconnect());
         search.textProperty().addListener((final var obs, final var before, final var after) -> filterGames());
         gameList.getSelectionModel().selectedItemProperty()
@@ -106,6 +137,21 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                         selectGame(game);
                     }
                 });
+        connectionScreen.setVisible(false);
+        connectionScreen.setManaged(false);
+        restoringScreen.setVisible(true);
+        restoringScreen.setManaged(true);
+        settings(connection::saved, (final var saved) -> {
+            if (saved.isEmpty()) {
+                showLibrary(false);
+            } else {
+                restore(saved.get());
+            }
+        });
+    }
+
+    public void openLinksWith(final Consumer<String> browser) {
+        this.browser = browser;
     }
 
     private Node sidebar() {
@@ -186,6 +232,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         final var profileLabel = label("STEAM PROFILE", "field-label");
         profileLabel.setLabelFor(profileField);
         final var keyInput = new VBox(8, keyLabel, keyField);
+        final var keyLink = new Hyperlink("Get a Steam Web API key ↗");
+        keyLink.setId("get-api-key");
+        keyLink.setOnAction((final var event) -> browser.accept(API_KEY_URL));
+        keyInput.getChildren().add(keyLink);
         final var profileInput = new VBox(8, profileLabel, profileField);
         final var inputHint =
                 label("The key authorizes access; your profile tells us which library to load.", "field-hint");
@@ -199,11 +249,13 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         hide(connectionError);
         hide(connectionStatus);
         final var card = new VBox(14, new VBox(5, formTitle, formSubtitle), keyInput, profileInput,
-                inputHint, connectButton, connectionStatus, connectionError);
+                inputHint, remember, connectButton, connectionStatus, connectionError);
         card.getStyleClass().add("connection-card");
         VBox.setMargin(keyInput, new Insets(7, 0, 0, 0));
         final var privacy =
-                label("◇  Session only. Your key stays in memory and is sent only to Steam.", "privacy-note");
+                label("Your key is sent only to Steam. Saved credentials use your device's credential store; uncheck " +
+                                "to forget them.",
+                        "privacy-note");
         privacy.setWrapText(true);
         final var footer = label("No game installs needed  ·  Read-only library access", "connect-footer");
         final var body = new VBox(22, intro, card, privacy, footer);
@@ -221,16 +273,17 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private void connect() {
-        if (currentTask != null)
+        if (currentTask != null || settingsTask != null)
             return;
-        load(keyField.getText(), profileField.getText());
+        load(keyField.getText(), profileField.getText(), true);
     }
 
-    private void load(final String key, final String profile) {
-        if (currentTask != null)
+    private void load(final String key, final String profile, final boolean updateSaved) {
+        if (currentTask != null || settingsTask != null)
             return;
         final var nextKey = key == null ? "" : key.strip();
         final var nextProfile = profile == null ? "" : profile.strip();
+        final var save = remember.isSelected();
         hide(connectionError);
         connectionStatus.setText("Connecting to Steam and loading your library…");
         show(connectionStatus);
@@ -264,6 +317,17 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                     "Steam returned no games. This can reflect library visibility; it is not proof that the account " +
                             "owns none."
                     : "Updated at " + time);
+            if (updateSaved) {
+
+                settings(() -> {
+                    if (save)
+                        connection.remember(nextKey, nextProfile);
+                    else
+                        connection.forget();
+                    return null;
+                }, (final var ignored) -> {
+                });
+            }
         });
         task.setOnFailed((final var event) -> {
             if (currentTask != task)
@@ -273,6 +337,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
             hide(connectionStatus);
             final var message = StoneException.codeOf(task.getException()).message();
             if (library == null) {
+                showLibrary(false);
                 connectionError.setText(message);
                 show(connectionError);
             } else {
@@ -312,11 +377,14 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         if (currentTask != null)
             currentTask.cancel(true);
         currentTask = null;
+        final var savedKey = remember.isSelected() ? sessionKey : "";
+        final var savedProfile = remember.isSelected() ? sessionProfile : "";
         sessionKey = null;
         sessionProfile = null;
         library = null;
         keyField.clear();
-        profileField.clear();
+        profileField.setText(savedProfile);
+        keyField.setText(savedKey);
         gameList.getItems().clear();
         icons.clear();
         search.clear();
@@ -337,13 +405,57 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
     private void setBusy(final boolean value) {
         connectButton.setDisable(value);
-        connectButton.setText(value ? "Loading your library…" : "Load my library  →");
+        connectButton.setText(value ? "Please wait…" : "Load my library  →");
         refreshButton.setDisable(value || library == null);
         keyField.setDisable(value);
         profileField.setDisable(value);
+        remember.setDisable(value);
+        profileName.setDisable(value);
+        disconnectButton.setDisable(value || library == null);
+    }
+
+    private void restore(final SavedConnection saved) {
+        remember.setSelected(true);
+        profileField.setText(saved.profile());
+        keyField.setText(saved.apiKey());
+        load(saved.apiKey(), saved.profile(), false);
+    }
+
+    private <T> void settings(final Supplier<T> operation, final Consumer<T> success) {
+        if (settingsTask != null || currentTask != null) {
+            return;
+        }
+        final var task = new StoneTask<>(operation);
+        settingsTask = task;
+        setBusy(true);
+        task.setOnSucceeded((final var event) -> {
+            if (settingsTask != task)
+                return;
+            settingsTask = null;
+            setBusy(false);
+            success.accept(task.getValue());
+        });
+        task.setOnFailed((final var event) -> {
+            if (settingsTask != task)
+                return;
+            settingsTask = null;
+            setBusy(false);
+            final var message = ErrorCode.SAVED_ACCOUNT.message();
+            if (library == null) {
+                showLibrary(false);
+                connectionError.setText(message);
+                show(connectionError);
+            } else {
+                libraryStatus.setText(message);
+                show(libraryStatus);
+            }
+        });
+        requests.submit(task);
     }
 
     private void showLibrary(final boolean value) {
+        restoringScreen.setVisible(false);
+        restoringScreen.setManaged(false);
         connectionScreen.setVisible(!value);
         connectionScreen.setManaged(!value);
         editor.setVisible(value);
@@ -388,6 +500,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     public void close() {
         if (currentTask != null)
             currentTask.cancel(true);
+        if (settingsTask != null) {
+            settingsTask.cancel(true);
+            settingsTask = null;
+        }
         sessionKey = null;
         keyField.clear();
         icons.clear();

@@ -41,7 +41,7 @@ def ensure_windows_wix():
                      "Install it on the build machine and add its bin directory to PATH.")
 
 
-def install_native_files(stage, system):
+def install_native_files(stage, system, arch):
     """Prepare native files at build time, using the libraries' standard on-disk layouts."""
     names = {"Windows": ("steam_api64.dll", "steamworks4j64.dll"),
              "Darwin": ("libsteam_api.dylib", "libsteamworks4j.dylib"),
@@ -52,6 +52,15 @@ def install_native_files(stage, system):
         if not source.is_file():
             raise SystemExit("Steam native files are missing. Run Maven verify before packaging.")
         shutil.copy2(source, stage / "native" / name)
+    # Install JNA's bridge beside the Steam natives so saving a key never extracts executable code.
+    jna_platform = {("Darwin", "arm64"): "darwin-aarch64", ("Darwin", "x64"): "darwin-x86-64",
+                    ("Windows", "x64"): "win32-x86-64", ("Linux", "x64"): "linux-x86-64"}[(system, arch)]
+    jna_name = {"Darwin": "libjnidispatch.jnilib", "Windows": "jnidispatch.dll", "Linux": "libjnidispatch.so"}[system]
+    jna_jars = list((stage / "lib").glob("jna-[0-9]*.jar"))
+    if len(jna_jars) != 1:
+        raise SystemExit("Expected one resolved JNA runtime dependency.")
+    with zipfile.ZipFile(jna_jars[0]) as contents:
+        (stage / "native" / jna_name).write_bytes(contents.read(f"com/sun/jna/{jna_platform}/{jna_name}"))
     # This is JavaFX's standard native-library layout next to its modular JARs.
     # Installing these files prevents JavaFX from extracting resources into a user cache.
     javafx_directory = stage / ("bin" if system == "Windows" else "lib")
@@ -188,7 +197,7 @@ def main():
     shutil.copy2(jar, stage)
     for dependency in runtime_dependencies(jar):
         shutil.copy2(dependency, stage / "lib")
-    install_native_files(stage, system)
+    install_native_files(stage, system, arch)
     for name in ("LICENSE.md", "README.md"):
         shutil.copy2(ROOT / name, stage)
     shutil.copytree(ROOT / "licenses", stage / "licenses")
@@ -201,6 +210,8 @@ def main():
                "--main-class", "steamstone.Main", "--dest", dist,
                "--java-options", "--module-path=$APPDIR/lib", "--java-options", "--add-modules=javafx.controls",
                "--java-options", "--enable-native-access=javafx.graphics,ALL-UNNAMED",
+               "--java-options", "-Djna.boot.library.path=$APPDIR/native",
+               "--java-options", "-Djna.nounpack=true",
                "--add-modules", "java.se,jdk.unsupported,jdk.crypto.ec"]
     if system == "Darwin":
         command += ["--mac-package-identifier", "app.steamstone.desktop"]

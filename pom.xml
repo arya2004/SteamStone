@@ -28,6 +28,7 @@
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <guice.version>7.0.0</guice.version>
         <guava.version>33.5.0-jre</guava.version>
+        <keyring.version>1.0.4</keyring.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -40,6 +41,17 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+        <dependency>
+            <groupId>com.github.javakeyring</groupId>
+            <artifactId>java-keyring</artifactId>
+            <version>${keyring.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>pt.davidafsilva.apple</groupId>
+                    <artifactId>jkeychain</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
@@ -110,7 +122,7 @@
                 <configuration>
                     <mainClass>steamstone.Main</mainClass>
                     <options>
-                        <option>--enable-native-access=javafx.graphics</option>
+                        <option>--enable-native-access=javafx.graphics,ALL-UNNAMED</option>
                     </options>
                 </configuration>
             </plugin>

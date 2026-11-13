@@ -4,6 +4,7 @@ import java.util.List;
 
 import steamstone.steam.nativeapi.NativeRuntimeConstants;
 import com.codedisaster.steamworks.SteamAPI;
+import com.sun.jna.Native;
 import com.codedisaster.steamworks.SteamException;
 import com.codedisaster.steamworks.SteamNativeHandle;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,6 +66,7 @@ public final class NativeWorker {
         try (final var arena = Arena.ofConfined()) {
             final var loader = new SteamNativeLibraries();
             SteamAPI.loadLibraries(loader);
+            Native.getNativeSize(Integer.TYPE);
             final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
             for (final var symbol : REQUIRED_SYMBOLS) {
                 if (symbols.find(symbol).isEmpty()) {

@@ -13,6 +13,7 @@ public final class SteamStoneApp extends Application {
     @Override
     public void start(final Stage stage) {
         libraryView = SteamStoneInjector.createView();
+        libraryView.openLinksWith(getHostServices()::showDocument);
         final var scene = new Scene(libraryView, 1180, 800);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         stage.setTitle("SteamStone");

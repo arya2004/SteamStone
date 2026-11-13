@@ -15,6 +15,7 @@ public enum ErrorCode {
     STEAM_STORAGE("Steam save error. Changes may still sync; reload before retrying."),
     NATIVE_RUNTIME("Steam runtime error. Rebuild or reinstall the app."),
     CANCELLED("Operation cancelled."),
+    SAVED_ACCOUNT("Saved account error. Please try again."),
     APPLICATION("Application error. Please try again.");
 
     private final String message;

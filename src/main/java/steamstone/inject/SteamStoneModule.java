@@ -10,6 +10,8 @@ import jakarta.inject.Singleton;
 import java.net.URI;
 import java.net.http.HttpClient;
 
+import steamstone.settings.ConnectionStore;
+
 import steamstone.steam.SteamWebApi;
 import steamstone.steam.nativeapi.NativeSteam;
 import steamstone.ui.achievement.AchievementEditor;
@@ -40,5 +42,11 @@ public final class SteamStoneModule extends AbstractModule {
     @Provides
     public URI steamApiBase() {
         return URI.create(API_BASE_URI);
+    }
+
+    @Provides
+    @Singleton
+    public ConnectionStore savedConnection() {
+        return new ConnectionStore("app.steamstone.desktop");
     }
 }

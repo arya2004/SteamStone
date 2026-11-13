@@ -300,6 +300,17 @@
     -fx-text-fill: #c5d7e2;
 }
 
+.hyperlink {
+    -fx-text-fill: #66c0f4;
+    -fx-padding: 0;
+    -fx-font-size: 11px;
+}
+
+.connection-card .check-box {
+    -fx-text-fill: #b9c5d3;
+    -fx-font-size: 11px;
+}
+
 .sidebar-game-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background-color: #24465f;
 }

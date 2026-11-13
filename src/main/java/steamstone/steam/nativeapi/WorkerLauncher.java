@@ -1,6 +1,7 @@
 package steamstone.steam.nativeapi;
 
 import com.codedisaster.steamworks.SteamAPI;
+import com.sun.jna.Native;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,7 +56,7 @@ public final class WorkerLauncher {
             command.add(CLASSPATH_OPTION);
             final var classpath = new LinkedHashSet<String>();
             for (final var type : List.of(Main.class, ObjectMapper.class, JsonNode.class,
-                    JsonFactory.class, JsonCreator.class, SteamAPI.class, Inject.class)) {
+                    JsonFactory.class, JsonCreator.class, SteamAPI.class, Inject.class, Native.class)) {
                 try {
                     classpath.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI())
                             .toAbsolutePath().normalize().toString());

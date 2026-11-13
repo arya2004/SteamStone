@@ -27,6 +27,13 @@ import javax.imageio.ImageIO;
 import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 import steamstone.inject.SteamStoneInjector;
+import com.google.inject.util.Modules;
+import steamstone.inject.SteamStoneModule;
+import steamstone.inject.SavedConnectionFixtureModule;
+import steamstone.settings.ConnectionStore;
+
+import java.util.UUID;
+
 import steamstone.model.Game;
 import steamstone.model.achievement.Achievement;
 import steamstone.ui.AppIcon;
@@ -43,7 +50,9 @@ public final class CheckApplication extends Application {
         try {
             final var output = Path.of("target", "verification");
             Files.createDirectories(output);
-            view = SteamStoneInjector.createView();
+            view = SteamStoneInjector.create(Modules.override(new SteamStoneModule()).with(
+                            new SavedConnectionFixtureModule(new ConnectionStore("steamstone.verify." + UUID.randomUUID()))))
+                    .getInstance(LibraryView.class);
             final var scene = new Scene(view, 1180, 800);
             scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
             stage.setTitle("SteamStone — UI verification");

@@ -45,6 +45,7 @@ import steamstone.steam.nativeapi.protocol.Request;
 import steamstone.steam.nativeapi.protocol.Response;
 import steamstone.steam.nativeapi.protocol.Status;
 import steamstone.ui.task.StoneTask;
+import steamstone.ui.scroll.SmoothListViewSkin;
 
 /**
  * Stages edits locally and commits through an isolated, account-checked Steam worker.
@@ -104,6 +105,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         list.setFixedCellSize(56);
         list.setPlaceholder(empty);
         list.setCellFactory((final var view) -> cells.get());
+        list.setSkin(new SmoothListViewSkin<>(list));
         final var body = new VBox(6, notice, list);
         body.getStyleClass().add("achievement-body");
         VBox.setVgrow(list, Priority.ALWAYS);
