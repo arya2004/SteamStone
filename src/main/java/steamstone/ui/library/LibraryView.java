@@ -94,6 +94,57 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         throw new StoneException(ErrorCode.APPLICATION);
     };
 
+    public void openLinksWith(final Consumer<String> browser) {
+        this.browser = browser;
+    }
+
+    public Image iconFor(final Game game) {
+        final var url = game.iconUrl();
+        if (url == null)
+            return null;
+        final var cached = icons.get(url);
+        if (cached != null)
+            return cached;
+        final var image = new Image(url, 28, 28, true, true, true);
+        icons.put(url, image);
+        if (icons.size() > 160)
+            icons.remove(icons.keySet().iterator().next()).cancel();
+        return image;
+    }
+
+    public static Label label(final String text, final String styleClass) {
+        final var label = new Label(text);
+        label.getStyleClass().add(styleClass);
+        return label;
+    }
+
+    public boolean canClose() {
+        return editor.discardPendingIfNeeded();
+    }
+
+    @Override
+    public void close() {
+        if (currentTask != null) {
+            currentTask.cancel(true);
+            requests.remove(currentTask);
+        }
+        currentTask = null;
+        sessionKey = null;
+        keyField.clear();
+        icons.values().forEach(Image::cancel);
+        icons.clear();
+        editor.close();
+        if (editor.committingProperty().get())
+            requests.shutdown();
+        else
+            requests.shutdownNow();
+        api.close();
+        library = null;
+        selectedGame = null;
+        sessionProfile = null;
+        gameList.getItems().clear();
+    }
+
     @Inject
     private void initialize() {
         getStyleClass().add("app-root");
@@ -149,10 +200,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                 restore(saved.get());
             }
         });
-    }
-
-    public void openLinksWith(final Consumer<String> browser) {
-        this.browser = browser;
     }
 
     private MenuBar menuBar() {
@@ -485,26 +532,6 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         }
     }
 
-    public Image iconFor(final Game game) {
-        final var url = game.iconUrl();
-        if (url == null)
-            return null;
-        final var cached = icons.get(url);
-        if (cached != null)
-            return cached;
-        final var image = new Image(url, 28, 28, true, true, true);
-        icons.put(url, image);
-        if (icons.size() > 160)
-            icons.remove(icons.keySet().iterator().next()).cancel();
-        return image;
-    }
-
-    public static Label label(final String text, final String styleClass) {
-        final var label = new Label(text);
-        label.getStyleClass().add(styleClass);
-        return label;
-    }
-
     private static void hide(final Node node) {
         node.setVisible(false);
         node.setManaged(false);
@@ -513,32 +540,5 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private static void show(final Node node) {
         node.setVisible(true);
         node.setManaged(true);
-    }
-
-    public boolean canClose() {
-        return editor.discardPendingIfNeeded();
-    }
-
-    @Override
-    public void close() {
-        if (currentTask != null) {
-            currentTask.cancel(true);
-            requests.remove(currentTask);
-        }
-        currentTask = null;
-        sessionKey = null;
-        keyField.clear();
-        icons.values().forEach(Image::cancel);
-        icons.clear();
-        editor.close();
-        if (editor.committingProperty().get())
-            requests.shutdown();
-        else
-            requests.shutdownNow();
-        api.close();
-        library = null;
-        selectedGame = null;
-        sessionProfile = null;
-        gameList.getItems().clear();
     }
 }

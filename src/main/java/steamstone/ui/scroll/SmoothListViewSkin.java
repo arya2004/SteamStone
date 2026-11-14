@@ -46,6 +46,18 @@ public final class SmoothListViewSkin<T> extends ListViewSkin<T> {
         registerChangeListener(control.disabledProperty(), (final var observable) -> cancel());
     }
 
+    @Override
+    public void dispose() {
+        cancel();
+        final var control = getSkinnable();
+        control.removeEventFilter(ScrollEvent.SCROLL, scrollHandler);
+        control.removeEventFilter(ScrollEvent.SCROLL_STARTED, gestureStarted);
+        control.removeEventFilter(ScrollEvent.SCROLL_FINISHED, gestureFinished);
+        control.removeEventFilter(KeyEvent.KEY_PRESSED, interruptHandler);
+        control.removeEventFilter(MouseEvent.MOUSE_PRESSED, interruptHandler);
+        super.dispose();
+    }
+
     private void scroll(final ScrollEvent event) {
         if (event.isControlDown() || event.isMetaDown() || event.isShiftDown()
                 || getSkinnable().isDisabled() || event.getDeltaY() == 0)
@@ -81,17 +93,5 @@ public final class SmoothListViewSkin<T> extends ListViewSkin<T> {
             getVirtualFlow().setPosition(position);
             animation = null;
         }
-    }
-
-    @Override
-    public void dispose() {
-        cancel();
-        final var control = getSkinnable();
-        control.removeEventFilter(ScrollEvent.SCROLL, scrollHandler);
-        control.removeEventFilter(ScrollEvent.SCROLL_STARTED, gestureStarted);
-        control.removeEventFilter(ScrollEvent.SCROLL_FINISHED, gestureFinished);
-        control.removeEventFilter(KeyEvent.KEY_PRESSED, interruptHandler);
-        control.removeEventFilter(MouseEvent.MOUSE_PRESSED, interruptHandler);
-        super.dispose();
     }
 }

@@ -13,6 +13,7 @@ import lombok.experimental.Accessors;
 @Getter
 @Accessors(fluent = true)
 public final class StoneException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
     private final ErrorCode code;
 
     public static StoneException wrap(final ErrorCode code, final Throwable e) {

@@ -41,13 +41,6 @@ public final class AchievementPreview {
         update(achievement, unlocked);
     }
 
-    private void update(final Achievement achievement, final boolean unlocked) {
-        if (unlocked == (achievement.state() == AchievementState.UNLOCKED))
-            changes.remove(achievement.id());
-        else
-            changes.put(achievement.id(), unlocked);
-    }
-
     public void setAll(final boolean unlocked) {
         for (final var achievement : achievements) {
             if (achievement.state() != AchievementState.UNKNOWN)
@@ -57,5 +50,12 @@ public final class AchievementPreview {
 
     public void reset() {
         changes.clear();
+    }
+
+    private void update(final Achievement achievement, final boolean unlocked) {
+        if (unlocked == (achievement.state() == AchievementState.UNLOCKED))
+            changes.remove(achievement.id());
+        else
+            changes.put(achievement.id(), unlocked);
     }
 }

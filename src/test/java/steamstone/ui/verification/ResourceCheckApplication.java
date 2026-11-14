@@ -8,6 +8,11 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
+import javafx.geometry.Orientation;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -73,6 +78,13 @@ public final class ResourceCheckApplication extends Application {
                     if (games.getItems().isEmpty() || ((Button) view.lookup("#reload-achievements")).isDisabled())
                         return;
                     assertEquals(GAME_COUNT, games.getItems().size());
+                    games.applyCss();
+                    games.layout();
+                    for (final var node : games.lookupAll(".scroll-bar")) {
+                        final var bar = (ScrollBar) node;
+                        if (bar.getOrientation() == Orientation.HORIZONTAL)
+                            assertFalse(bar.isVisible(), "Long game titles must not create horizontal scrolling");
+                    }
                     // Stress cancellation without ever loading native achievement definitions.
                     for (var index = 1; index < 100; index++)
                         games.getSelectionModel().select(index);

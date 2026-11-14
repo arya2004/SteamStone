@@ -488,3 +488,11 @@
 .scroll-bar .thumb:hover {
     -fx-background-color: #69718a;
 }
+
+/* Rows shrink to the viewport; long titles are available through their tooltip. */
+.sidebar-game-list .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}

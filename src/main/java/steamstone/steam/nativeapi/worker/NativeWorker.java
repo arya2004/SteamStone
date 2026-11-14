@@ -62,23 +62,6 @@ public final class NativeWorker {
         }
     }
 
-    private static void checkRuntime() {
-        try (final var arena = Arena.ofConfined()) {
-            final var loader = new SteamNativeLibraries();
-            SteamAPI.loadLibraries(loader);
-            Native.getNativeSize(Integer.TYPE);
-            final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
-            for (final var symbol : REQUIRED_SYMBOLS) {
-                if (symbols.find(symbol).isEmpty()) {
-                    throw new StoneException(ErrorCode.NATIVE_RUNTIME);
-                }
-            }
-            System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
-        } catch (final RuntimeException | LinkageError e) {
-            throw StoneException.wrap(ErrorCode.NATIVE_RUNTIME, e);
-        }
-    }
-
     public static Response run(final Request request) {
         try {
             final var loader = new SteamNativeLibraries();
@@ -110,6 +93,23 @@ public final class NativeWorker {
             }
         } catch (final SteamException | InterruptedException | RuntimeException | LinkageError e) {
             throw StoneException.wrap(ErrorCode.STEAM_SESSION, e);
+        }
+    }
+
+    private static void checkRuntime() {
+        try (final var arena = Arena.ofConfined()) {
+            final var loader = new SteamNativeLibraries();
+            SteamAPI.loadLibraries(loader);
+            Native.getNativeSize(Integer.TYPE);
+            final var symbols = SymbolLookup.libraryLookup(loader.path(LIBRARY_NAME), arena);
+            for (final var symbol : REQUIRED_SYMBOLS) {
+                if (symbols.find(symbol).isEmpty()) {
+                    throw new StoneException(ErrorCode.NATIVE_RUNTIME);
+                }
+            }
+            System.out.println("Bundled Steam native runtime loaded; no Steam session opened.");
+        } catch (final RuntimeException | LinkageError e) {
+            throw StoneException.wrap(ErrorCode.NATIVE_RUNTIME, e);
         }
     }
 }

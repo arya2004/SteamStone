@@ -27,34 +27,6 @@ public final class AchievementCell extends ListCell<Achievement> {
     private final Label state = AchievementEditor.label("", "achievement-state");
     private final HBox row = new HBox();
 
-    @Inject
-    private void initialize() {
-        image.setFitWidth(32);
-        image.setFitHeight(32);
-        final var cover = new StackPane(image);
-        cover.setMinSize(32, 32);
-        cover.setMaxSize(32, 32);
-        cover.getStyleClass().add("achievement-cover");
-        final var text = new VBox(3, name, description);
-        text.setMinWidth(0);
-        name.setMaxWidth(Double.MAX_VALUE);
-        description.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(text, Priority.ALWAYS);
-        row.setSpacing(10);
-        row.getChildren().setAll(check, cover, text, state);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.getStyleClass().add("achievement-row");
-        row.prefWidthProperty().bind(widthProperty().subtract(4));
-        description.setTooltip(new Tooltip());
-        name.setTooltip(new Tooltip());
-        check.setOnAction((final var e) -> {
-            if (getItem() != null) {
-                editor.preview().setUnlocked(getItem(), check.isSelected());
-                editor.changed();
-            }
-        });
-    }
-
     @Override
     protected void updateItem(final Achievement achievement, final boolean emptyCell) {
         super.updateItem(achievement, emptyCell);
@@ -88,5 +60,33 @@ public final class AchievementCell extends ListCell<Achievement> {
         name.getTooltip().setText(achievement.name() + "\n" + achievement.id());
         state.setText(unknown ? "UNAVAILABLE" : (edited ? "• " : "") + (unlocked ? "UNLOCKED" : "LOCKED"));
         setGraphic(row);
+    }
+
+    @Inject
+    private void initialize() {
+        image.setFitWidth(32);
+        image.setFitHeight(32);
+        final var cover = new StackPane(image);
+        cover.setMinSize(32, 32);
+        cover.setMaxSize(32, 32);
+        cover.getStyleClass().add("achievement-cover");
+        final var text = new VBox(3, name, description);
+        text.setMinWidth(0);
+        name.setMaxWidth(Double.MAX_VALUE);
+        description.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        row.setSpacing(10);
+        row.getChildren().setAll(check, cover, text, state);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("achievement-row");
+        row.prefWidthProperty().bind(widthProperty().subtract(4));
+        description.setTooltip(new Tooltip());
+        name.setTooltip(new Tooltip());
+        check.setOnAction((final var e) -> {
+            if (getItem() != null) {
+                editor.preview().setUnlocked(getItem(), check.isSelected());
+                editor.changed();
+            }
+        });
     }
 }

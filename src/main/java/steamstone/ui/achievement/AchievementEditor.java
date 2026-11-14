@@ -77,6 +77,109 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private Task<Response> commitTask;
     private String dataNotice = "";
 
+    public void open(final Game next, final String apiKey, final String account) {
+        if (isCurrentSession(next, apiKey, account))
+            return;
+        cancel();
+        game = next;
+        key = apiKey;
+        steamId = account;
+        title.setText(next == null ? "Choose a game" : next.name());
+        title.setTooltip(next == null ? null : new Tooltip(next.name()));
+        subtitle.setText(next == null ? "Select a game from the sidebar" : "APP " + next.appId());
+        if (next == null) {
+            clear();
+            empty.setText("Select a game to load its achievements.");
+        } else
+            load();
+    }
+
+    public Menu menu() {
+        final var menu = new Menu("Achievements");
+        menu.getItems().addAll(AppMenus.action("Reload achievements", "Shortcut+Shift+R", reload),
+                new SeparatorMenuItem(), AppMenus.action("Unlock all", null, unlock),
+                AppMenus.action("Lock all", null, lock), new SeparatorMenuItem(),
+                AppMenus.action("Reset preview", "Shortcut+Shift+Z", reset),
+                AppMenus.action("Save changes to Steam", "Shortcut+S", commit));
+        return menu;
+    }
+
+    public AchievementPreview preview() {
+        return preview;
+    }
+
+    public boolean nativeReady() {
+        return nativeReady;
+    }
+
+    public void changed() {
+        notice.setText(dataNotice);
+        list.refresh();
+        updateControls();
+    }
+
+    public ReadOnlyBooleanProperty committingProperty() {
+        return committing.getReadOnlyProperty();
+    }
+
+    public boolean discardPendingIfNeeded() {
+        if (committing.get())
+            return false;
+        if (preview.changeCount() == 0)
+            return true;
+        final var alert = new Alert(Alert.AlertType.CONFIRMATION,
+                "Discard " + preview.changeCount() + " pending achievement change(s)?",
+                ButtonType.CANCEL, new ButtonType("Discard", ButtonBar.ButtonData.OK_DONE));
+        alert.setHeaderText("Unsaved changes");
+        if (getScene() != null)
+            alert.initOwner(getScene().getWindow());
+        return alert.showAndWait().map((final var button) -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE)
+                .orElse(false);
+    }
+
+    public boolean isCurrentGame(final Game candidate) {
+        return game != null && candidate.appId() == game.appId();
+    }
+
+    public Image icon(final Achievement achievement) {
+        final var url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
+        if (url.isBlank())
+            return null;
+        final var cached = icons.get(url);
+        if (cached != null)
+            return cached;
+        try {
+            final var uri = URI.create(url);
+            if (!isSteamImage(uri))
+                return null;
+        } catch (final IllegalArgumentException e) {
+            return null;
+        }
+        final var image = new Image(url, 32, 32, true, true, true);
+        icons.put(url, image);
+        if (icons.size() > 100) {
+            icons.remove(icons.keySet().iterator().next()).cancel();
+        }
+        return image;
+    }
+
+    @Override
+    public void close() {
+        cancel();
+        key = null;
+        steamId = null;
+        if (commitTask == null) {
+            game = null;
+            clear();
+        }
+    }
+
+    public static Label label(final String text, final String style) {
+        final var label = new Label(text);
+        label.getStyleClass().add(style);
+        return label;
+    }
+
     @Inject
     private void initialize() {
         getStyleClass().add("editor-page");
@@ -128,24 +231,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
                 load();
         });
         updateControls();
-    }
-
-    public void open(final Game next, final String apiKey, final String account) {
-        if (next != null && game != null && next.appId() == game.appId()
-                && Objects.equals(key, apiKey) && Objects.equals(steamId, account))
-            return;
-        cancel();
-        game = next;
-        key = apiKey;
-        steamId = account;
-        title.setText(next == null ? "Choose a game" : next.name());
-        title.setTooltip(next == null ? null : new Tooltip(next.name()));
-        subtitle.setText(next == null ? "Select a game from the sidebar" : "APP " + next.appId());
-        if (next == null) {
-            clear();
-            empty.setText("Select a game to load its achievements.");
-        } else
-            load();
     }
 
     private void load() {
@@ -205,24 +290,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.execute(next);
     }
 
-    public Menu menu() {
-        final var menu = new Menu("Achievements");
-        menu.getItems().addAll(AppMenus.action("Reload achievements", "Shortcut+Shift+R", reload),
-                new SeparatorMenuItem(), AppMenus.action("Unlock all", null, unlock),
-                AppMenus.action("Lock all", null, lock), new SeparatorMenuItem(),
-                AppMenus.action("Reset preview", "Shortcut+Shift+Z", reset),
-                AppMenus.action("Save changes to Steam", "Shortcut+S", commit));
-        return menu;
-    }
-
-    public AchievementPreview preview() {
-        return preview;
-    }
-
-    public boolean nativeReady() {
-        return nativeReady;
-    }
-
     private void clear() {
         nativeReady = false;
         preview = new AchievementPreview(List.of());
@@ -231,12 +298,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         icons.clear();
         dataNotice = "";
         changed();
-    }
-
-    public void changed() {
-        notice.setText(dataNotice);
-        list.refresh();
-        updateControls();
     }
 
     private void updateControls() {
@@ -251,29 +312,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         commit.setText(committing.get() ? "Saving…" : "Save changes");
         commit.setTooltip(preview.changeCount() == 0 ? null :
                 new Tooltip("Save " + preview.changeCount() + " pending change(s)"));
-    }
-
-    public ReadOnlyBooleanProperty committingProperty() {
-        return committing.getReadOnlyProperty();
-    }
-
-    public boolean discardPendingIfNeeded() {
-        if (committing.get())
-            return false;
-        if (preview.changeCount() == 0)
-            return true;
-        final var alert = new Alert(Alert.AlertType.CONFIRMATION,
-                "Discard " + preview.changeCount() + " pending achievement change(s)?",
-                ButtonType.CANCEL, new ButtonType("Discard", ButtonBar.ButtonData.OK_DONE));
-        alert.setHeaderText("Unsaved changes");
-        if (getScene() != null)
-            alert.initOwner(getScene().getWindow());
-        return alert.showAndWait().map((final var button) -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE)
-                .orElse(false);
-    }
-
-    public boolean isCurrentGame(final Game candidate) {
-        return game != null && candidate.appId() == game.appId();
     }
 
     private void commit() {
@@ -334,29 +372,16 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         }).toList(), errorCode);
     }
 
-    public Image icon(final Achievement achievement) {
-        final var url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
-        if (url.isBlank())
-            return null;
-        final var cached = icons.get(url);
-        if (cached != null)
-            return cached;
-        try {
-            final var uri = URI.create(url);
-            final var host = uri.getHost();
-            if (!"https".equalsIgnoreCase(uri.getScheme()) || host == null || uri.getUserInfo() != null
-                    || !(host.endsWith(".steamstatic.com") || host.endsWith(".steamcommunity.com")
-                    || host.equals("steamcdn-a.akamaihd.net")))
-                return null;
-        } catch (final IllegalArgumentException e) {
-            return null;
-        }
-        final var image = new Image(url, 32, 32, true, true, true);
-        icons.put(url, image);
-        if (icons.size() > 100) {
-            icons.remove(icons.keySet().iterator().next()).cancel();
-        }
-        return image;
+    private boolean isCurrentSession(final Game next, final String apiKey, final String account) {
+        return next != null && game != null && next.appId() == game.appId()
+                && Objects.equals(key, apiKey) && Objects.equals(steamId, account);
+    }
+
+    private static boolean isSteamImage(final URI uri) {
+        final var host = uri.getHost();
+        return "https".equalsIgnoreCase(uri.getScheme()) && host != null && uri.getUserInfo() == null
+                && (host.endsWith(".steamstatic.com") || host.endsWith(".steamcommunity.com")
+                || host.equals("steamcdn-a.akamaihd.net"));
     }
 
     private void cancel() {
@@ -365,23 +390,6 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             requests.remove(task);
         }
         task = null;
-    }
-
-    @Override
-    public void close() {
-        cancel();
-        key = null;
-        steamId = null;
-        if (commitTask == null) {
-            game = null;
-            clear();
-        }
-    }
-
-    public static Label label(final String text, final String style) {
-        final var label = new Label(text);
-        label.getStyleClass().add(style);
-        return label;
     }
 
     private static Button button(final String text, final String id) {

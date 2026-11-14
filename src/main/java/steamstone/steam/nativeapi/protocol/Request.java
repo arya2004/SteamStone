@@ -55,14 +55,18 @@ public final class Request {
         } catch (final NullPointerException e) {
             throw new StoneException(ErrorCode.INVALID_INPUT, e);
         }
-        if (appId <= 0 || appId > MAX_APP_ID || steamId == null ||
+        if (!isValid()) {
+            throw new StoneException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private boolean isValid() {
+        return !(appId <= 0 || appId > MAX_APP_ID || steamId == null ||
                 !steamId.matches(SteamConstants.STEAM_ID_PATTERN)
                 || this.ids.size() > MAX_ACHIEVEMENT_COUNT ||
                 this.ids.stream().anyMatch((final var id) -> id.isBlank() || id.length() > MAX_ACHIEVEMENT_ID_LENGTH)
                 || this.ids.stream().distinct().count() != this.ids.size()
                 || !this.ids.containsAll(this.changes.keySet())
-                || !this.expected.keySet().containsAll(this.changes.keySet())) {
-            throw new StoneException(ErrorCode.INVALID_INPUT);
-        }
+                || !this.expected.keySet().containsAll(this.changes.keySet()));
     }
 }

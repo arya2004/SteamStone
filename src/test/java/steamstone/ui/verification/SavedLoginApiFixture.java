@@ -30,7 +30,8 @@ public final class SavedLoginApiFixture implements AutoCloseable {
 
     public SavedLoginApiFixture(final int games) {
         library = "{\"response\":{\"game_count\":" + games + ",\"games\":[" + IntStream.rangeClosed(1, games)
-                .mapToObj((final var id) -> "{\"appid\":" + id + ",\"name\":\"Game " + id + "\"}")
+                .mapToObj((final var id) -> "{\"appid\":" + id + ",\"name\":\"Game " +
+                        (id == 1 ? "An exceptionally long game name ".repeat(20) : id) + "\"}")
                 .collect(Collectors.joining(",")) + "]}}";
         try {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

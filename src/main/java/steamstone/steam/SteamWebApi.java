@@ -109,30 +109,8 @@ public final class SteamWebApi implements AutoCloseable {
         return new SteamLibrary(steamId, playerName(steamId, key), library.games(), library.fetchedAt());
     }
 
-    private String playerName(final String steamId, final String key) {
-        // A missing display name should not prevent loading the library.
-        try {
-            final var name = get(PLAYER_SUMMARY_PATH + steamId, key)
-                    .path(RESPONSE_KEY).path(PLAYERS_KEY).path(0).path(PERSONA_NAME_KEY).asText();
-            return name.isBlank() ? steamId : name;
-        } catch (final StoneException e) {
-            requireNotInterrupted(e);
-            return steamId;
-        }
-    }
-
-    private String resolveProfile(final SteamProfile profile, final String key) {
-        final var result = get(VANITY_RESOLUTION_PATH + encode(profile.value()), key);
-        final var steamId = result.path(RESPONSE_KEY).path(STEAM_ID_KEY).asText();
-        if (!steamId.matches(SteamConstants.STEAM_ID_PATTERN)) {
-            throw new StoneException(ErrorCode.STEAM_API);
-        }
-        return steamId;
-    }
-
     public SteamLibrary parseLibrary(final JsonNode response, final String steamId, final String playerName) {
-        if (!response.isObject() || !response.path(GAME_COUNT_KEY).canConvertToInt()
-                || !response.path(GAME_COUNT_KEY).isIntegralNumber()) {
+        if (!hasGameCount(response)) {
             throw new StoneException(
                     ErrorCode.STEAM_API);
         }
@@ -146,8 +124,7 @@ public final class SteamWebApi implements AutoCloseable {
         if (entries.isArray()) {
             for (final var entry : entries) {
                 final var id = entry.path(APP_ID_KEY);
-                if (!id.isIntegralNumber() || !id.canConvertToLong() || id.asLong() <= 0
-                        || id.asLong() > MAX_APP_ID) {
+                if (!isAppId(id)) {
                     throw new StoneException(ErrorCode.STEAM_API);
                 }
                 final var appId = id.asLong();
@@ -170,9 +147,7 @@ public final class SteamWebApi implements AutoCloseable {
     }
 
     public AchievementList loadAchievements(final String apiKey, final String steamId, final long appId) {
-        if (apiKey == null || !apiKey.matches(WEB_API_KEY_PATTERN) || steamId == null
-                || !steamId.matches(SteamConstants.STEAM_ID_PATTERN) || appId <= 0 ||
-                appId > MAX_APP_ID) {
+        if (!validAchievementRequest(apiKey, steamId, appId)) {
             throw new StoneException(ErrorCode.INVALID_INPUT);
         }
         final var schema =
@@ -246,6 +221,46 @@ public final class SteamWebApi implements AutoCloseable {
         return new AchievementList(result, resultCode);
     }
 
+    @Override
+    public void close() {
+        client.shutdownNow();
+    }
+
+    private String playerName(final String steamId, final String key) {
+        // A missing display name should not prevent loading the library.
+        try {
+            final var name = get(PLAYER_SUMMARY_PATH + steamId, key)
+                    .path(RESPONSE_KEY).path(PLAYERS_KEY).path(0).path(PERSONA_NAME_KEY).asText();
+            return name.isBlank() ? steamId : name;
+        } catch (final StoneException e) {
+            requireNotInterrupted(e);
+            return steamId;
+        }
+    }
+
+    private String resolveProfile(final SteamProfile profile, final String key) {
+        final var result = get(VANITY_RESOLUTION_PATH + encode(profile.value()), key);
+        final var steamId = result.path(RESPONSE_KEY).path(STEAM_ID_KEY).asText();
+        if (!steamId.matches(SteamConstants.STEAM_ID_PATTERN)) {
+            throw new StoneException(ErrorCode.STEAM_API);
+        }
+        return steamId;
+    }
+
+    private static boolean hasGameCount(final JsonNode response) {
+        final var count = response.path(GAME_COUNT_KEY);
+        return response.isObject() && count.isIntegralNumber() && count.canConvertToInt();
+    }
+
+    private static boolean isAppId(final JsonNode id) {
+        return id.isIntegralNumber() && id.canConvertToLong() && id.asLong() > 0 && id.asLong() <= MAX_APP_ID;
+    }
+
+    private static boolean validAchievementRequest(final String key, final String steamId, final long appId) {
+        return key != null && key.matches(WEB_API_KEY_PATTERN) && steamId != null
+                && steamId.matches(SteamConstants.STEAM_ID_PATTERN) && appId > 0 && appId <= MAX_APP_ID;
+    }
+
     private static void requireNotInterrupted(final Throwable e) {
         if (Thread.currentThread().isInterrupted() || StoneException.codeOf(e) == ErrorCode.CANCELLED) {
             throw new StoneException(ErrorCode.CANCELLED, e);
@@ -277,11 +292,6 @@ public final class SteamWebApi implements AutoCloseable {
         } catch (final IOException e) {
             throw new StoneException(ErrorCode.STEAM_API, e);
         }
-    }
-
-    @Override
-    public void close() {
-        client.shutdownNow();
     }
 
     private static String encode(final String value) {

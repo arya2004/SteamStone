@@ -26,26 +26,6 @@ public final class GameCell extends ListCell<Game> {
     private final Label name = LibraryView.label("", "game-name");
     private final HBox row = new HBox();
 
-    @Inject
-    private void initialize() {
-        image.setFitWidth(28);
-        image.setFitHeight(28);
-        final var cover = new StackPane(initial, image);
-        cover.getStyleClass().add("game-cover");
-        cover.setMinSize(28, 28);
-        cover.setMaxSize(28, 28);
-        final var text = new VBox(name);
-        text.setMinWidth(0);
-        HBox.setHgrow(text, Priority.ALWAYS);
-        row.setSpacing(10);
-        row.getChildren().setAll(cover, text);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.getStyleClass().add("game-row");
-        name.setMaxWidth(Double.MAX_VALUE);
-        name.setTextOverrun(OverrunStyle.ELLIPSIS);
-        setTooltip(new Tooltip());
-    }
-
     @Override
     protected void updateItem(final Game game, final boolean empty) {
         super.updateItem(game, empty);
@@ -62,5 +42,30 @@ public final class GameCell extends ListCell<Game> {
         getTooltip().setText(game.name());
         setGraphic(row);
         setText(null);
+    }
+
+    @Inject
+    private void initialize() {
+        setPrefWidth(0);
+        row.setMinWidth(0);
+        row.prefWidthProperty().bind(widthProperty());
+        setMinWidth(0);
+        name.setMinWidth(0);
+        image.setFitWidth(28);
+        image.setFitHeight(28);
+        final var cover = new StackPane(initial, image);
+        cover.getStyleClass().add("game-cover");
+        cover.setMinSize(28, 28);
+        cover.setMaxSize(28, 28);
+        final var text = new VBox(name);
+        text.setMinWidth(0);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        row.setSpacing(10);
+        row.getChildren().setAll(cover, text);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("game-row");
+        name.setMaxWidth(Double.MAX_VALUE);
+        name.setTextOverrun(OverrunStyle.ELLIPSIS);
+        setTooltip(new Tooltip());
     }
 }

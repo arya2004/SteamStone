@@ -30,14 +30,6 @@ public final class SteamStoneModule extends AbstractModule {
     private static final String API_BASE_URI = "https://api.steampowered.com/";
     private static final Duration API_CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
-    @Override
-    protected void configure() {
-        bind(SteamWebApi.class).in(Singleton.class);
-        bind(NativeSteam.class).in(Singleton.class);
-        bind(LibraryView.class).in(Singleton.class);
-        bind(AchievementEditor.class).in(Singleton.class);
-    }
-
     @Provides
     @Singleton
     public ThreadPoolExecutor backgroundTasks() {
@@ -64,5 +56,13 @@ public final class SteamStoneModule extends AbstractModule {
     @Singleton
     public ConnectionStore savedConnection() {
         return new ConnectionStore("app.steamstone.desktop");
+    }
+
+    @Override
+    protected void configure() {
+        bind(SteamWebApi.class).in(Singleton.class);
+        bind(NativeSteam.class).in(Singleton.class);
+        bind(LibraryView.class).in(Singleton.class);
+        bind(AchievementEditor.class).in(Singleton.class);
     }
 }
