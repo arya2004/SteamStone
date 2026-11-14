@@ -27,12 +27,12 @@
         <lombok.version>1.18.48</lombok.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <guice.version>7.0.0</guice.version>
-        <guava.version>33.5.0-jre</guava.version>
+        <guava.version>33.7.2-jre</guava.version>
         <keyring.version>1.0.4</keyring.version>
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- Guice 7 otherwise selects Guava 31, which uses deprecated Unsafe memory access. -->
+            <!-- Override Guice 7's older Guava with the CVE-2026-102554 fix. -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
