@@ -1,0 +1,47 @@
+name: Bug report
+description: Report incorrect behavior or a crash.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues first. Remove API keys and private information from screenshots and logs.
+  - type: input
+    id: version
+    attributes:
+      label: SteamStone version
+      placeholder: "0.2.0 or a commit SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and architecture
+      placeholder: "macOS 15 / Apple Silicon, Windows 11 / x64, or Ubuntu 24.04 / x64"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the game name and App ID if relevant. Do not include your API key.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the displayed error and whether Steam was running and signed into the same account.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Redact credentials and private information before attaching anything.

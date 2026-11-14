@@ -1,0 +1,37 @@
+name: Performance issue
+description: Report high memory or CPU usage, excessive threads, or slow scrolling.
+title: "[Performance]: "
+labels: [bug]
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: App version, OS, and hardware
+      placeholder: "SteamStone 0.2.0, macOS 15, M1, 8 GB RAM"
+    validations:
+      required: true
+  - type: textarea
+    id: workload
+    attributes:
+      label: When does it happen?
+      description: Include approximate library size, the selected game, and whether the app was idle, loading, scrolling, or saving.
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Observed performance
+      description: Include memory, CPU, thread count, or load time if available, and what you expected. No profiling tools are required.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or recordings
+      description: Optional. Remove credentials and private information first.

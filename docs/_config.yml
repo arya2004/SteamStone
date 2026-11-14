@@ -1,0 +1,9 @@
+title: SteamStone
+description: A lightweight Steam achievement manager for Windows, macOS, and Linux.
+url: https://arya2004.github.io
+baseurl: /SteamStone
+repository: arya2004/SteamStone
+show_downloads: false
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme

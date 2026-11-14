@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Downloads and setup instructions
+    url: https://github.com/arya2004/SteamStone#first-time-setup
+    about: Read setup instructions and common troubleshooting steps before opening an issue.

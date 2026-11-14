@@ -1,0 +1,42 @@
+name: Installation or startup problem
+description: Report a download, installer, or launch problem.
+title: "[Setup]: "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version and downloaded filename
+      placeholder: "SteamStone-0.2.0-windows-x64-setup.exe"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and architecture
+      placeholder: "Windows 11 x64, macOS 15 Apple Silicon, or Ubuntu 24.04 x64"
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where does it fail?
+      options:
+        - Downloading
+        - Extracting or installing
+        - Opening the app
+        - Connecting to Steam
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened?
+      description: Include steps and the exact error or OS warning, if one appears. Do not share your API key.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Remove private information first.
