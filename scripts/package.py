@@ -2,6 +2,7 @@
 """Build a runtime-inclusive app image and platform downloads. Python standard library only."""
 import argparse
 import hashlib
+import json
 import os
 import platform
 from pathlib import Path
@@ -96,12 +97,73 @@ def runtime_dependencies(jar):
     return dependencies
 
 
+def verify_jar_version(jar, expected):
+    """Refuse a stale --skip-build output even when pom.xml has the desired version."""
+    with zipfile.ZipFile(jar) as contents:
+        try:
+            properties = contents.read("app.properties").decode("utf-8")
+        except KeyError:
+            raise SystemExit("Application version metadata is missing. Rebuild before packaging.")
+    version = next((line.split("=", 1)[1].strip() for line in properties.splitlines()
+                    if line.startswith("version=")), None)
+    if version != expected:
+        raise SystemExit(f"Application JAR version {version!r} does not match {expected}. Rebuild before packaging.")
+
+
 def packaging_icon(system):
     extension = {"Windows": ".ico", "Darwin": ".icns", "Linux": ".png"}[system]
     icon = ROOT / "packaging/icons" / f"steamstone{extension}"
     if not icon.is_file():
         raise SystemExit(f"Missing launcher icon: {icon}. Run scripts/generate_icons.py after updating the master PNG.")
     return icon
+
+
+def verify_macos_dependencies(image):
+    """A successful launch on the build machine does not prove a portable runtime."""
+    for library in sorted(image.rglob("*")):
+        if not library.is_file() or library.suffix not in (".dylib", ".jnilib"):
+            continue
+        commands = subprocess.check_output(["otool", "-l", str(library)], text=True)
+        # LC_ID_DYLIB is a library's own name, not a dependency to load.
+        for block in commands.split("Load command"):
+            if not re.search(r"cmd LC_(?:LOAD|LOAD_WEAK|REEXPORT)_DYLIB\s", block):
+                continue
+            match = re.search(r"\n\s*name (.+) \(offset", block)
+            if not match:
+                raise SystemExit(f"Could not inspect native dependency in {library.name}.")
+            dependency = match.group(1)
+            if dependency.startswith("/") and not dependency.startswith(("/usr/lib/", "/System/Library/")):
+                raise SystemExit(f"Non-portable macOS dependency in {library.name}: {dependency}. "
+                                 "Package with a self-contained JDK such as Temurin, not a Homebrew-linked JDK.")
+
+
+def write_distribution_metadata(stage, version, system, arch, java_version):
+    """Keep provenance and upstream notices beside the files actually distributed."""
+    revision = "unavailable (source snapshot)"
+    modified = True
+    if (ROOT / ".git").exists():
+        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        modified = bool(subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=normal"], cwd=ROOT, text=True).strip())
+    dependencies = {}
+    for jar in sorted((stage / "lib").glob("*.jar")):
+        dependencies[jar.name] = hashlib.sha256(jar.read_bytes()).hexdigest()
+        with zipfile.ZipFile(jar) as contents:
+            for entry in contents.infolist():
+                name = Path(entry.filename).name
+                if entry.is_dir() or not re.search(r"(?:LICENSE|NOTICE|COPYING)(?:[._-]|$)", name, re.IGNORECASE):
+                    continue
+                if name.endswith(".class"):
+                    continue
+                # Flatten to a safe, unique name; never extract an archive-controlled path.
+                destination = stage / "licenses" / jar.stem / entry.filename.replace("/", "_").replace("\\", "_")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(contents.read(entry))
+    metadata = {"version": version, "sourceRevision": revision, "modifiedSource": modified,
+                "platform": system, "architecture": arch, "javaVersion": java_version,
+                "applicationSha256": hashlib.sha256((stage / "steamstone.jar").read_bytes()).hexdigest(),
+                "runtimeDependenciesSha256": dependencies}
+    (stage / "build-info.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
 
 def windows_installer(jpackage, image, version, destination):
@@ -190,6 +252,7 @@ def main():
     jar = ROOT / "target/steamstone.jar"
     if not jar.is_file() or not (ROOT / "target/lib").is_dir():
         raise SystemExit("Build outputs are missing. Run the build before --skip-build.")
+    verify_jar_version(jar, version)
     stage = ROOT / "target/package-input"
     if stage.exists():
         shutil.rmtree(stage)
@@ -198,9 +261,11 @@ def main():
     for dependency in runtime_dependencies(jar):
         shutil.copy2(dependency, stage / "lib")
     install_native_files(stage, system, arch)
-    for name in ("LICENSE.md", "README.md"):
-        shutil.copy2(ROOT / name, stage)
-    shutil.copytree(ROOT / "licenses", stage / "licenses")
+    shutil.copy2(ROOT / "LICENSE.md", stage)
+    shutil.copy2(ROOT / "packaging/README.md", stage / "README.md")
+    shutil.copy2(ROOT / "docs/guide.md", stage / "USER-GUIDE.md")
+    java_version = re.search(r'version "([^"]+)"', version_output.stdout + version_output.stderr).group(1)
+    write_distribution_metadata(stage, version, system, arch, java_version)
     bundle_version = version
     if system == "Darwin" and version.split(".")[0] == "0":
         bundle_version = "1." + version.split(".", 1)[1]
@@ -217,6 +282,8 @@ def main():
     if system == "Darwin":
         command += ["--mac-package-identifier", "app.steamstone.desktop"]
     run(command)
+    if system == "Darwin":
+        verify_macos_dependencies(image)
     # Exercise the main app's real worker-launch path, without a UI, credentials or Steam initialization.
     launcher = image / ({"Darwin": "Contents/MacOS/SteamStone", "Windows": "SteamStone.exe",
                           "Linux": "bin/SteamStone"}[system])

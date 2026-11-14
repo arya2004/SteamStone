@@ -34,11 +34,17 @@ public final class WorkerProcess implements AutoCloseable {
 
     @Override
     public void close() {
-        if (process.isAlive()) {
-            process.destroyForcibly();
-            if (!await(SHUTDOWN_TIMEOUT_SECONDS)) {
-                throw new StoneException(ErrorCode.STEAM_STORAGE);
+        final var interrupted = Thread.interrupted();
+        try {
+            if (process.isAlive()) {
+                process.destroyForcibly();
+                if (!await(SHUTDOWN_TIMEOUT_SECONDS)) {
+                    throw new StoneException(ErrorCode.STEAM_STORAGE);
+                }
             }
+        } finally {
+            if (interrupted)
+                Thread.currentThread().interrupt();
         }
     }
 }

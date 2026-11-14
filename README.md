@@ -1,61 +1,64 @@
+<p align="center"><img src="docs/assets/icon.png" width="96" alt="SteamStone icon"></p>
+
 # SteamStone
 
-SteamStone is a desktop app for viewing and editing your Steam achievements. Browse your games, tick achievements to unlock them, untick them to lock them, and click **Commit** to save your changes to Steam.
+**Your games. Your progress.** A desktop app for browsing your Steam library and staging achievement changes before saving them to Steam.
+
+[![CI](https://github.com/arya2004/SteamStone/actions/workflows/ci.yml/badge.svg)](https://github.com/arya2004/SteamStone/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+
+[Downloads](https://github.com/arya2004/SteamStone/releases/latest) · [User guide](docs/guide.md) · [Website](https://arya2004.github.io/SteamStone/) · [Report a bug](https://github.com/arya2004/SteamStone/issues/new/choose)
+
+![SteamStone connection screen, captured from the application on macOS](docs/assets/connection.png)
+
+## What it does
+
+- Browse and search your Steam library.
+- Preview individual or bulk achievement changes; **Reset** discards the preview.
+- Use **Save changes** to send edits to Steam, with confirmation and partial-result feedback.
+- Optionally save one API key and profile in your operating system's credential store and reconnect on startup.
+- Use native macOS menus, keyboard shortcuts, and vertical game-list scrolling.
+
+Browsing and checkbox changes never save achievements automatically. Steam must be running under the same account to edit achievements. Some games restrict changes; this app cannot guarantee compatibility or protection from game-specific consequences.
 
 ## Download
 
-Get SteamStone from the [Releases page](https://github.com/arya2004/SteamStone/releases/latest). Open **Assets** and choose the download for your computer:
+Choose an asset from the [latest published release](https://github.com/arya2004/SteamStone/releases/latest). **Java is included.** The repository ZIP contains source code, not a runnable app.
 
-| Your computer | Download | How to open it |
+| Computer | Download | Open |
 | --- | --- | --- |
-| Mac with Apple Silicon (M1 or newer) | `SteamStone-<version>-macos-arm64.zip` | Unzip, drag SteamStone into Applications, and open it |
-| Intel Mac | `SteamStone-<version>-macos-x64.zip` | Unzip, drag SteamStone into Applications, and open it |
-| Windows 64-bit — installer | `SteamStone-<version>-windows-x64-setup.exe` | Run the setup wizard, then open SteamStone from the Start menu |
-| Windows 64-bit — portable | `SteamStone-<version>-windows-x64.zip` | Extract the ZIP, keep the folder together, and run `SteamStone/SteamStone.exe` |
-| Linux 64-bit (x86_64) | `SteamStone-<version>-linux-x64.tar.gz` | Extract it, then run `SteamStone/bin/SteamStone` |
+| macOS Apple Silicon | `SteamStone-<version>-macos-arm64.zip` | Extract and move SteamStone.app to Applications |
+| macOS Intel | `SteamStone-<version>-macos-x64.zip` | Extract and move SteamStone.app to Applications |
+| Windows x64 | `SteamStone-<version>-windows-x64-setup.exe` | Run the per-user setup wizard |
+| Windows x64, portable | `SteamStone-<version>-windows-x64.zip` | Extract the whole folder; run SteamStone.exe |
+| Linux x64 | `SteamStone-<version>-linux-x64.tar.gz` | Extract; run SteamStone/bin/SteamStone |
 
-**You do not need to install Java or any developer tools.** Both Windows downloads include Java. The setup wizard installs SteamStone for your account and lets you choose its location and shortcuts; you can remove it through Windows Settings → Apps. The portable ZIP needs no installation: extract it once, run `SteamStone.exe` inside its folder, and keep the runtime and other files beside it. Keep the extracted Linux app folder together; Linux needs a graphical desktop with GTK 3.
+Windows and Linux archives must remain together with their bundled runtime. Linux requires a graphical desktop and GTK 3. Builds have no trusted publisher signature and are not notarized; OS warnings are expected. See [installation and verification](docs/guide.md#installation).
 
-If there are no release downloads yet, a public build has not been published. The repository's **Code → Download ZIP** button downloads source code, not a runnable app.
-
-Builds are currently unsigned and not notarized. Your operating system may ask you to allow the app. macOS with Apple Silicon has been tested with Steam; Intel Mac, Windows, and Linux still need live Steam testing.
+**v1.0.0 is being prepared, not yet published.** Apple Silicon packaging and fixture checks have passed locally; Intel Mac, Windows, and Linux still require runtime and installation verification.
 
 ## First-time setup
 
-1. Open Steam and sign in.
-2. Get your personal key from [Steam's API key page](https://steamcommunity.com/dev/apikey). If asked for a domain, enter `localhost`.
-3. Open SteamStone and paste that key into **Steam Web API key**.
-4. Enter your Steam profile URL or SteamID64. Use the account currently signed into Steam.
-5. Click **Load my library**, then choose a game from the sidebar.
+1. Open Steam and sign into your account.
+2. Get a personal key from [Steam's API key page](https://steamcommunity.com/dev/apikey), also linked inside the app. Follow Steam's current registration requirements.
+3. Paste the key and enter your Steam profile URL or SteamID64 for that same account.
+4. Optionally select **Save API key and profile on this device**.
+5. Click **Load my library** and choose a game.
 
-Your key stays in memory for the current session. SteamStone does not save it or include a shared key in the download.
+Without saving, credentials stay in memory for the session. Saved credentials use macOS Keychain, Windows Credential Manager, or a supported Linux keyring; there is no plaintext-file fallback. To forget them, disconnect and uncheck the save option. Disconnect alone does not erase a remembered account. SteamStone does not discover profiles from a key; it stores only the profile you supply.
 
 ## Edit achievements
 
-- **Tick / untick** an achievement to stage an unlock or lock.
-- **Unlock all / Lock all** stages changes for every available achievement in the selected game.
-- **Reset** discards changes you have not committed.
-- **Commit** saves your staged changes through Steam and shows the result.
-- **↻** reloads the game's achievements.
+Tick or untick to stage an unlock or lock. **Unlock all / Lock all** stage changes for available achievements in the selected game. **Reset** discards uncommitted edits. **Save changes** applies the preview through Steam. Reload, switching games, and closing ask before discarding unsaved edits; navigation is blocked during a save.
 
-Blue rows are unlocked; dark slate rows are locked. Unavailable achievements cannot be edited. Keep Steam running while using the editor. Some games restrict achievement changes; SteamStone reports failed or partially saved changes.
+If a save is not confirmed, reload before retrying: accepted changes may still sync. Partial results keep unresolved intentions in the preview. Unavailable achievements remain read-only. Details and recovery steps are in the [user guide](docs/guide.md).
 
-## Having trouble?
+## Contribute and report problems
 
-**My games are missing.** Check that you entered the correct profile and that Steam can access its Game details. Check your profile's privacy settings, then refresh your library.
-
-**I can browse but cannot edit.** Keep Steam open, check that both apps are using the same account, and reload the game. Owning a game does not guarantee Steam will let it be edited on your current platform.
-
-**A save was not confirmed.** Reload before trying again; Steam may still sync accepted changes. Check the result instead of assuming every change was saved.
-
-Found a bug? [Open an issue](https://github.com/arya2004/SteamStone/issues) with your operating system, app version, and what happened. Keep API keys and personal information out of reports.
-
-## Contribute
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing, and creating releases, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for builds and tests, [SECURITY.md](SECURITY.md) for sensitive reports, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community guidelines. Include your app version, OS, architecture, and reproduction steps in bug reports. Never include API keys or saved credentials.
 
 ## License and credits
 
-SteamStone is available under the [MIT license](LICENSE.md). It is inspired by [Steam Achievement Manager](https://github.com/gibbed/SteamAchievementManager) and uses JavaFX and [steamworks4j](https://github.com/code-disaster/steamworks4j). Third-party components keep their own licenses; the steamworks4j notice is included in `licenses/` and packaged downloads.
+SteamStone is [MIT licensed](LICENSE.md), inspired by [Steam Achievement Manager](https://github.com/gibbed/SteamAchievementManager), and built with JavaFX and [steamworks4j](https://github.com/code-disaster/steamworks4j). Dependencies retain their own license terms.
 
-SteamStone is not affiliated with Valve. Steam names and game artwork belong to their owners.
+SteamStone is not affiliated with or endorsed by Valve. Steam names and game artwork belong to their owners.

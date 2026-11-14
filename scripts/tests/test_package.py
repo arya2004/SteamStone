@@ -1,5 +1,6 @@
 """Cross-platform checks for Windows downloads; no Windows tools or Steam session needed."""
 import hashlib
+import json
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -131,6 +132,60 @@ class RuntimeDependenciesTest(unittest.TestCase):
                 output.writestr("META-INF/MANIFEST.MF", "Class-Path: lib/missing.jar\r\n")
             with self.assertRaisesRegex(SystemExit, "Missing or invalid runtime dependency"):
                 package.runtime_dependencies(jar)
+
+
+class JarVersionTest(unittest.TestCase):
+    def test_rejects_stale_and_missing_version_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jar = Path(directory) / "steamstone.jar"
+            with zipfile.ZipFile(jar, "w") as output:
+                output.writestr("app.properties", "version=0.2.0\n")
+            with self.assertRaisesRegex(SystemExit, "does not match"):
+                package.verify_jar_version(jar, "1.0.0")
+            package.verify_jar_version(jar, "0.2.0")
+            with zipfile.ZipFile(jar, "w"):
+                pass
+            with self.assertRaisesRegex(SystemExit, "metadata is missing"):
+                package.verify_jar_version(jar, "1.0.0")
+
+
+class DistributionMetadataTest(unittest.TestCase):
+    def test_preserves_notices_and_hashes_without_extracting_archive_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stage = root / "stage"
+            (stage / "lib").mkdir(parents=True)
+            (stage / "steamstone.jar").write_bytes(b"fixture app")
+            dependency = stage / "lib/example.jar"
+            with zipfile.ZipFile(dependency, "w") as output:
+                output.writestr("../../NOTICE", "upstream notice")
+                output.writestr("META-INF/LICENSE", "upstream license")
+                output.writestr("ExampleLicense.class", b"bytecode")
+            with patch.object(package, "ROOT", root):
+                package.write_distribution_metadata(stage, "1.0.0", "Darwin", "arm64", "25.0.1")
+            info = json.loads((stage / "build-info.json").read_text())
+            self.assertTrue(info["modifiedSource"])
+            self.assertEqual(hashlib.sha256(dependency.read_bytes()).hexdigest(),
+                             info["runtimeDependenciesSha256"]["example.jar"])
+            notices = list((stage / "licenses/example").iterdir())
+            self.assertEqual({"upstream notice", "upstream license"}, {p.read_text() for p in notices})
+            self.assertFalse((root / "NOTICE").exists())
+            self.assertNotIn(str(root), (stage / "build-info.json").read_text())
+
+
+class MacDependenciesTest(unittest.TestCase):
+    def test_rejects_external_libraries_but_not_install_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "example.dylib").touch()
+            safe = "Load command 0\n cmd LC_ID_DYLIB\n name /usr/local/lib/example.dylib (offset 24)\n"
+            safe += "Load command 1\n cmd LC_LOAD_DYLIB\n name /usr/lib/libSystem.B.dylib (offset 24)\n"
+            with patch.object(package.subprocess, "check_output", return_value=safe):
+                package.verify_macos_dependencies(root)
+            unsafe = safe + "Load command 2\n cmd LC_LOAD_DYLIB\n name /opt/homebrew/lib/libpng.dylib (offset 24)\n"
+            with patch.object(package.subprocess, "check_output", return_value=unsafe):
+                with self.assertRaisesRegex(SystemExit, "Non-portable"):
+                    package.verify_macos_dependencies(root)
 
 
 if __name__ == "__main__":

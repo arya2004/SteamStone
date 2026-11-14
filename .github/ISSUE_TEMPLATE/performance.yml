@@ -7,7 +7,7 @@ body:
     id: environment
     attributes:
       label: App version, OS, and hardware
-      placeholder: "SteamStone 0.2.0, macOS 15, M1, 8 GB RAM"
+      placeholder: "SteamStone 1.0.0, macOS 15, M1, 8 GB RAM"
     validations:
       required: true
   - type: textarea

@@ -23,12 +23,15 @@ import steamstone.inject.SteamStoneInjector;
 import steamstone.inject.SteamStoneModule;
 import steamstone.settings.ConnectionStore;
 import steamstone.ui.library.LibraryView;
+import steamstone.ui.achievement.AchievementEditor;
+import steamstone.model.achievement.AchievementPreview;
 
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Reproducible local workload; no Steam session, live credentials, or remote images.
@@ -44,14 +47,17 @@ public final class ResourceCheckApplication extends Application {
     private int tick;
     private int step;
     private int idleAt;
+    private AchievementEditor editor;
+    private AchievementPreview previewBeforeRefresh;
 
     @Override
     public void start(final Stage stage) {
         api = new SavedLoginApiFixture(GAME_COUNT);
         store = new ConnectionStore("steamstone.resources." + UUID.randomUUID());
-        view = SteamStoneInjector.create(Modules.override(new SteamStoneModule()).with(
-                        new SavedConnectionFixtureModule(store), new SteamApiFixtureModule(api.base())))
-                .getInstance(LibraryView.class);
+        final var injector = SteamStoneInjector.create(Modules.override(new SteamStoneModule()).with(
+                new SavedConnectionFixtureModule(store), new SteamApiFixtureModule(api.base())));
+        view = injector.getInstance(LibraryView.class);
+        editor = injector.getInstance(AchievementEditor.class);
         final var scene = new Scene(view, 1180, 800);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         stage.setScene(scene);
@@ -97,6 +103,17 @@ public final class ResourceCheckApplication extends Application {
                     if (tick - idleAt < 100 || ((Button) view.lookup("#reload-achievements")).isDisabled())
                         return;
                     report("loaded-idle");
+                    previewBeforeRefresh = editor.preview();
+                    api.emptyLibrary = true;
+                    ((Button) view.lookup("#refresh-library")).fire();
+                    step++;
+                }
+                case 3 -> {
+                    if (((Button) view.lookup("#refresh-library")).isDisabled())
+                        return;
+                    assertTrue(games.getItems().isEmpty());
+                    assertSame(previewBeforeRefresh, editor.preview(),
+                            "A refreshed library must not replace the open achievement preview");
                     ((Button) view.lookup("#disconnect")).fire();
                     assertTrue(games.getItems().isEmpty());
                     assertTrue(((ListView<?>) view.lookup("#achievement-list")).getItems().isEmpty());
@@ -104,7 +121,7 @@ public final class ResourceCheckApplication extends Application {
                     idleAt = tick;
                     step++;
                 }
-                case 3 -> {
+                case 4 -> {
                     if (tick - idleAt < 30)
                         return;
                     report("closed");

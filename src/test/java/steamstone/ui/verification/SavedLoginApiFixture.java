@@ -23,6 +23,7 @@ public final class SavedLoginApiFixture implements AutoCloseable {
     private final String library;
     public final AtomicInteger requests = new AtomicInteger();
     public volatile int status = 200;
+    public volatile boolean emptyLibrary;
 
     public SavedLoginApiFixture() {
         this(0);
@@ -50,7 +51,7 @@ public final class SavedLoginApiFixture implements AutoCloseable {
         requests.incrementAndGet();
         final var second = exchange.getRequestURI().toString().contains(SECOND_ID);
         final var body = exchange.getRequestURI().getPath().contains("GetOwnedGames")
-                ? library
+                ? (emptyLibrary ? "{\"response\":{\"game_count\":0,\"games\":[]}}" : library)
                 : exchange.getRequestURI().getPath().contains("GetSchemaForGame")
                 ? "{\"game\":{\"availableGameStats\":{\"achievements\":[]}}}"
                 : "{\"response\":{\"players\":[{\"personaname\":\"" + (second ? "Second" : "First") + "\"}]}}";

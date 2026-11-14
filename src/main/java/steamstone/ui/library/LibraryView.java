@@ -1,5 +1,6 @@
 package steamstone.ui.library;
 
+import steamstone.AppVersion;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -179,7 +180,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                 });
             }
         });
-        refreshButton.setOnAction((final var event) -> load(sessionKey, sessionProfile, false));
+        refreshButton.setOnAction((final var event) -> load(sessionKey, library.steamId(), false));
         disconnectButton.setOnAction((final var event) -> disconnect());
         search.textProperty().addListener((final var obs, final var before, final var after) -> filterGames());
         gameList.getSelectionModel().selectedItemProperty()
@@ -231,7 +232,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                     final var about = new Alert(Alert.AlertType.INFORMATION);
                     about.initOwner(getScene().getWindow());
                     about.setTitle("About SteamStone");
-                    about.setHeaderText("SteamStone");
+                    about.setHeaderText("SteamStone " + AppVersion.VERSION);
                     about.setContentText(
                             "Your games. Your progress.\n\nBrowse your Steam library and manage achievements. "
                                     + "Changes stay in a local preview until you save them to Steam.");
@@ -399,13 +400,9 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                     "Steam returned no games. This can reflect library visibility; it is not proof that the account " +
                             "owns none."
                     : "Updated at " + time);
-            if (updateSaved) {
-
+            if (updateSaved && save) {
                 run(() -> {
-                    if (save)
-                        connection.remember(nextKey, nextProfile);
-                    else
-                        connection.forget();
+                    connection.remember(nextKey, nextProfile);
                     return null;
                 }, (final var ignored) -> {
                 });
@@ -425,11 +422,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         gameList.getItems().setAll(visible);
         if (selectedGame != null) {
             final var id = selectedGame.appId();
-            selectGame(
-                    library.games().stream().filter((final var game) -> game.appId() == id).findFirst().orElse(null));
-        }
-        if (selectedGame != null && visible.contains(selectedGame)) {
-            gameList.getSelectionModel().select(selectedGame);
+            // Refresh and search update navigation only. Keep the open editor, including
+            // pending edits or an in-flight save, even if Steam omits this game.
+            visible.stream().filter((final var game) -> game.appId() == id).findFirst()
+                    .ifPresent(gameList.getSelectionModel()::select);
         } else if (selectedGame == null && !visible.isEmpty()) {
             gameList.getSelectionModel().selectFirst();
         }

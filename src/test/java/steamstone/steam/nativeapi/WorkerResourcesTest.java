@@ -9,6 +9,7 @@ import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,6 +53,9 @@ public final class WorkerResourcesTest {
                 final var failure = assertThrows(StoneException.class, () -> process.await(30));
                 assertInstanceOf(InterruptedException.class, failure.getCause());
                 assertTrue(Thread.currentThread().isInterrupted());
+                assertDoesNotThrow(process::close);
+                assertTrue(Thread.currentThread().isInterrupted());
+                assertDoesNotThrow(process::exitValue);
             } finally {
                 Thread.interrupted();
             }

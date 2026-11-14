@@ -1,5 +1,6 @@
 package steamstone.steam;
 
+import steamstone.AppVersion;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -74,7 +75,7 @@ public final class SteamWebApi implements AutoCloseable {
     private static final String ACCEPT_HEADER = "Accept";
     private static final String JSON_MEDIA_TYPE = "application/json";
     private static final String USER_AGENT_HEADER = "User-Agent";
-    private static final String USER_AGENT = "SteamStone/0.1.0";
+    private static final String USER_AGENT = "SteamStone/" + AppVersion.VERSION;
     private static final String EMPTY_VALUE = "";
     private static final String OWNED_GAMES_INPUT =
             "{\"steamid\":\"%s\",\"include_appinfo\":true,\"include_played_free_games\":true}";
@@ -276,13 +277,12 @@ public final class SteamWebApi implements AutoCloseable {
                 .GET().build();
         try {
             // Complete the body within the request timeout, rather than returning an unbounded stream.
-            final var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            final var response = client.send(request,
+                    HttpResponse.BodyHandlers.limiting(HttpResponse.BodyHandlers.ofByteArray(), MAX_RESPONSE_BYTES));
             final var status = response.statusCode();
             if (status != HTTP_OK)
                 throw new StoneException(ErrorCode.STEAM_API);
             final var bytes = response.body();
-            if (bytes.length > MAX_RESPONSE_BYTES)
-                throw new StoneException(ErrorCode.STEAM_API);
             final var value = json.readTree(bytes);
             if (value == null)
                 throw new StoneException(ErrorCode.STEAM_API);

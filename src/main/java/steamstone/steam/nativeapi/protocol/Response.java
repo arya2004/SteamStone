@@ -49,7 +49,12 @@ public final class Response {
 
     @JsonProperty(value = MESSAGE, access = JsonProperty.Access.READ_ONLY)
     public String message() {
-        return status == Status.CONFIRMED ? "Changes saved to Steam." : errorCode.message();
+        return switch (status) {
+            case CONFIRMED -> "Changes saved to Steam.";
+            case PARTIAL -> "Steam did not confirm every change. Review the remaining preview before retrying.";
+            case CONFLICT -> "Steam's achievement state changed. Nothing was sent; review the refreshed preview.";
+            default -> errorCode.message();
+        };
     }
 
     private static boolean hasConsistentOutcome(final Status status, final ErrorCode errorCode) {

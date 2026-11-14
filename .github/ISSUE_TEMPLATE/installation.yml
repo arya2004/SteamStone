@@ -7,7 +7,7 @@ body:
     id: version
     attributes:
       label: Version and downloaded filename
-      placeholder: "SteamStone-0.2.0-windows-x64-setup.exe"
+      placeholder: "SteamStone-1.0.0-windows-x64-setup.exe"
     validations:
       required: true
   - type: input

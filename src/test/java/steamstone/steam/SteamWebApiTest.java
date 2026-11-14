@@ -168,6 +168,17 @@ public class SteamWebApiTest {
     }
 
     @Test
+    public void cancelsOversizedResponsesBeforeParsingAndCanRecover() {
+        ownedBody = "{\"response\":{\"game_count\":0}}" + " ".repeat(9 * 1024 * 1024);
+        final var e = assertThrows(StoneException.class, () -> api.loadLibrary(KEY, ID));
+        assertEquals(ErrorCode.STEAM_API, e.code());
+        assertInstanceOf(IOException.class, e.getCause());
+        assertFalse(e.getCause() instanceof JsonProcessingException);
+        ownedBody = "{\"response\":{\"game_count\":0}}";
+        assertTrue(api.loadLibrary(KEY, ID).games().isEmpty());
+    }
+
+    @Test
     public void optionalProfileFailureDoesNotDiscardTheLibrary() {
         summaryStatus = 503;
         final var result = api.loadLibrary(KEY, ID);
