@@ -44,6 +44,9 @@ public final class AchievementCell extends ListCell<Achievement> {
         row.getChildren().setAll(check, cover, text, state);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("achievement-row");
+        row.prefWidthProperty().bind(widthProperty().subtract(4));
+        description.setTooltip(new Tooltip());
+        name.setTooltip(new Tooltip());
         check.setOnAction((final var e) -> {
             if (getItem() != null) {
                 editor.preview().setUnlocked(getItem(), check.isSelected());
@@ -60,6 +63,10 @@ public final class AchievementCell extends ListCell<Achievement> {
         if (emptyCell || achievement == null) {
             setGraphic(null);
             image.setImage(null);
+            name.setText("");
+            description.setText("");
+            name.getTooltip().setText("");
+            description.getTooltip().setText("");
             return;
         }
         final var unknown = achievement.state() == AchievementState.UNKNOWN;
@@ -77,10 +84,9 @@ public final class AchievementCell extends ListCell<Achievement> {
         description.setText(achievement.description());
         description.setVisible(!achievement.description().isBlank());
         description.setManaged(description.isVisible());
-        description.setTooltip(new Tooltip(achievement.description()));
-        name.setTooltip(new Tooltip(achievement.name() + "\n" + achievement.id()));
+        description.getTooltip().setText(achievement.description());
+        name.getTooltip().setText(achievement.name() + "\n" + achievement.id());
         state.setText(unknown ? "UNAVAILABLE" : (edited ? "• " : "") + (unlocked ? "UNLOCKED" : "LOCKED"));
         setGraphic(row);
-        row.prefWidthProperty().bind(widthProperty().subtract(4));
     }
 }

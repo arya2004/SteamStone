@@ -31,8 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -56,8 +55,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private static final String API_KEY_URL = "https://steamcommunity.com/dev/apikey";
     private final SteamWebApi api;
     private final ConnectionStore connection;
-    private final ExecutorService requests = Executors.newSingleThreadExecutor(
-            Thread.ofPlatform().daemon(true).name("steamstone-api").factory());
+    private final ThreadPoolExecutor requests;
     private final PasswordField keyField = new PasswordField();
     private final TextField profileField = new TextField();
     private final Button connectButton = new Button("Load my library  →");
@@ -341,8 +339,10 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void disconnect() {
         if (!editor.discardPendingIfNeeded())
             return;
-        if (currentTask != null)
+        if (currentTask != null) {
             currentTask.cancel(true);
+            requests.remove(currentTask);
+        }
         currentTask = null;
         final var savedKey = remember.isSelected() ? sessionKey : "";
         final var savedProfile = remember.isSelected() ? sessionProfile : "";
@@ -353,6 +353,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         profileField.setText(savedProfile);
         keyField.setText(savedKey);
         gameList.getItems().clear();
+        icons.values().forEach(Image::cancel);
         icons.clear();
         search.clear();
         hide(connectionError);
@@ -417,7 +418,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                 show(libraryStatus);
             }
         });
-        requests.submit(task);
+        requests.execute(task);
     }
 
     private void showLibrary(final boolean value) {
@@ -441,7 +442,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         final var image = new Image(url, 28, 28, true, true, true);
         icons.put(url, image);
         if (icons.size() > 160)
-            icons.remove(icons.keySet().iterator().next());
+            icons.remove(icons.keySet().iterator().next()).cancel();
         return image;
     }
 
@@ -467,13 +468,24 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
 
     @Override
     public void close() {
-        if (currentTask != null)
+        if (currentTask != null) {
             currentTask.cancel(true);
+            requests.remove(currentTask);
+        }
         currentTask = null;
         sessionKey = null;
         keyField.clear();
+        icons.values().forEach(Image::cancel);
         icons.clear();
-        requests.shutdownNow();
         editor.close();
+        if (editor.committingProperty().get())
+            requests.shutdown();
+        else
+            requests.shutdownNow();
+        api.close();
+        library = null;
+        selectedGame = null;
+        sessionProfile = null;
+        gameList.getItems().clear();
     }
 }

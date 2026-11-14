@@ -91,6 +91,7 @@ public class SteamWebApiTest {
 
     @AfterEach
     public void stop() {
+        api.close();
         server.stop(0);
     }
 

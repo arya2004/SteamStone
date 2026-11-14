@@ -25,8 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,8 +50,7 @@ import steamstone.ui.scroll.SmoothListViewSkin;
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class AchievementEditor extends VBox implements AutoCloseable {
     private final SteamWebApi api;
-    private final ExecutorService requests = Executors.newSingleThreadExecutor(
-            Thread.ofPlatform().daemon(true).name("steamstone-achievements").factory());
+    private final ThreadPoolExecutor requests;
     private final Label title = label("Choose a game", "editor-game-name");
     private final Label subtitle = label("Select a game from the sidebar", "editor-game-id");
     private final Label notice = label("", "achievement-notice");
@@ -201,7 +199,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             notice.setText(StoneException.codeOf(next.getException()).message());
             updateControls();
         });
-        requests.submit(next);
+        requests.execute(next);
     }
 
     public AchievementPreview preview() {
@@ -216,6 +214,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         nativeReady = false;
         preview = new AchievementPreview(List.of());
         list.getItems().clear();
+        icons.values().forEach(Image::cancel);
         icons.clear();
         dataNotice = "";
         changed();
@@ -306,7 +305,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
             dataNotice = ErrorCode.STEAM_STORAGE.message();
             changed();
         });
-        requests.submit(next);
+        requests.execute(next);
     }
 
     private static AchievementList merge(final List<Achievement> source, final Response response,
@@ -326,6 +325,9 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         final var url = preview.isUnlocked(achievement) ? achievement.icon() : achievement.lockedIcon();
         if (url.isBlank())
             return null;
+        final var cached = icons.get(url);
+        if (cached != null)
+            return cached;
         try {
             final var uri = URI.create(url);
             final var host = uri.getHost();
@@ -336,16 +338,19 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         } catch (final IllegalArgumentException e) {
             return null;
         }
-        final var image = icons.computeIfAbsent(url, (final var value) -> new Image(value, 32, 32, true, true, true));
+        final var image = new Image(url, 32, 32, true, true, true);
+        icons.put(url, image);
         if (icons.size() > 100) {
-            icons.remove(icons.keySet().iterator().next());
+            icons.remove(icons.keySet().iterator().next()).cancel();
         }
         return image;
     }
 
     private void cancel() {
-        if (task != null)
+        if (task != null) {
             task.cancel(true);
+            requests.remove(task);
+        }
         task = null;
     }
 
@@ -354,11 +359,10 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         cancel();
         key = null;
         steamId = null;
-        if (commitTask == null)
-            requests.shutdownNow();
-        else
-            requests.shutdown();
-        icons.clear();
+        if (commitTask == null) {
+            game = null;
+            clear();
+        }
     }
 
     public static Label label(final String text, final String style) {

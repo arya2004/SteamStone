@@ -33,7 +33,7 @@ import steamstone.model.achievement.AchievementState;
  * Read-only, documented Steam Web API. No global catalogs or internal Steam files.
  */
 @RequiredArgsConstructor(onConstructor_ = @Inject)
-public final class SteamWebApi {
+public final class SteamWebApi implements AutoCloseable {
     private static final String API_BASE_URI = "https://api.steampowered.com/";
     private static final Duration API_CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final String WEB_API_KEY_PATTERN = "[a-fA-F0-9]{32}";
@@ -277,6 +277,11 @@ public final class SteamWebApi {
         } catch (final IOException e) {
             throw new StoneException(ErrorCode.STEAM_API, e);
         }
+    }
+
+    @Override
+    public void close() {
+        client.shutdownNow();
     }
 
     private static String encode(final String value) {

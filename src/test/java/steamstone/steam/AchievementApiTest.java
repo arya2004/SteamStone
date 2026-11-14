@@ -76,6 +76,7 @@ public class AchievementApiTest {
 
     @AfterEach
     public void stop() {
+        api.close();
         server.stop(0);
     }
 

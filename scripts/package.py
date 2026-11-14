@@ -210,6 +210,7 @@ def main():
                "--main-class", "steamstone.Main", "--dest", dist,
                "--java-options", "--module-path=$APPDIR/lib", "--java-options", "--add-modules=javafx.controls",
                "--java-options", "--enable-native-access=javafx.graphics,ALL-UNNAMED",
+               "--java-options", "-XX:+UseSerialGC", "--java-options", "-Xms32m",
                "--java-options", "-Djna.boot.library.path=$APPDIR/native",
                "--java-options", "-Djna.nounpack=true",
                "--add-modules", "java.se,jdk.unsupported,jdk.crypto.ec"]

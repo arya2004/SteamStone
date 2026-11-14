@@ -122,6 +122,8 @@
                 <configuration>
                     <mainClass>steamstone.Main</mainClass>
                     <options>
+                        <option>-XX:+UseSerialGC</option>
+                        <option>-Xms32m</option>
                         <option>--enable-native-access=javafx.graphics,ALL-UNNAMED</option>
                     </options>
                 </configuration>

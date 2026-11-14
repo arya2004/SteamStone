@@ -76,6 +76,8 @@ public final class WorkerLauncherTest {
         try {
             final var command = WorkerLauncher.command();
             assertTrue(Path.of(command.getFirst()).isAbsolute());
+            assertTrue(command.contains("-XX:+UseSerialGC"));
+            assertTrue(command.contains("-Xms32m"));
             final var classpath = command.get(command.indexOf("-cp") + 1);
             assertTrue(Arrays.stream(classpath.split(File.pathSeparator)).allMatch((final var entry) ->
                     Path.of(entry).isAbsolute() && Files.exists(Path.of(entry))));

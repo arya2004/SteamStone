@@ -32,6 +32,8 @@ public final class WorkerLauncher {
     private static final String UNIX_JAVA_EXECUTABLE = "java";
     private static final String JAVA_BIN_DIRECTORY = "bin";
     private static final String ENABLE_NATIVE_ACCESS_OPTION = "--enable-native-access=ALL-UNNAMED";
+    private static final String SERIAL_GC_OPTION = "-XX:+UseSerialGC";
+    private static final String INITIAL_HEAP_OPTION = "-Xms32m";
     private static final String CLASSPATH_OPTION = "-cp";
     private static final String WORKER_ARGUMENT = "--steam-worker";
 
@@ -53,6 +55,8 @@ public final class WorkerLauncher {
             }
             command.add(java.normalize().toString());
             command.add(ENABLE_NATIVE_ACCESS_OPTION);
+            command.add(SERIAL_GC_OPTION);
+            command.add(INITIAL_HEAP_OPTION);
             command.add(CLASSPATH_OPTION);
             final var classpath = new LinkedHashSet<String>();
             for (final var type : List.of(Main.class, ObjectMapper.class, JsonNode.class,
