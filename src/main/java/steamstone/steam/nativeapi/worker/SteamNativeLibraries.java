@@ -51,7 +51,7 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
             file = LIBRARY_PREFIX + name + MAC_LIBRARY_EXTENSION;
         else if (os.contains(WINDOWS_OS_FRAGMENT))
             file = name + (arch.contains(ARCH_64_MARKER) ? ARCH_64_MARKER : EMPTY_SUFFIX) + WINDOWS_LIBRARY_EXTENSION;
-        else if (os.contains(LINUX_OS_FRAGMENT) && (arch.equals(AMD64_ARCH) || arch.equals(X86_64_ARCH)))
+        else if (isSupportedLinuxArchitecture(os, arch))
             file = LIBRARY_PREFIX + name + LINUX_LIBRARY_EXTENSION;
         else
             throw new StoneException(ErrorCode.NATIVE_RUNTIME);
@@ -67,5 +67,9 @@ public final class SteamNativeLibraries implements SteamLibraryLoader {
         }
         System.load(destination.toAbsolutePath().toString());
         return true;
+    }
+
+    private static boolean isSupportedLinuxArchitecture(final String os, final String arch) {
+        return os.contains(LINUX_OS_FRAGMENT) && (arch.equals(AMD64_ARCH) || arch.equals(X86_64_ARCH));
     }
 }

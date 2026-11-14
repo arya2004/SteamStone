@@ -26,7 +26,11 @@ public final class StorageCallback implements SteamUserStatsCallback {
 
     @Override
     public void onUserStatsStored(final long gameId, final SteamResult result) {
-        if (waiting && this.result == null && gameId == appId)
+        if (isAwaitedStorageCallback(gameId))
             this.result = result;
+    }
+
+    private boolean isAwaitedStorageCallback(final long gameId) {
+        return waiting && result == null && gameId == appId;
     }
 }

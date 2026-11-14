@@ -116,7 +116,7 @@ public final class SteamWebApi implements AutoCloseable {
         }
         final var count = response.path(GAME_COUNT_KEY).asInt();
         final var entries = response.path(GAMES_KEY);
-        if (count < 0 || (count > 0 && !entries.isArray())) {
+        if (hasInvalidGameEntries(count, entries)) {
             throw new StoneException(ErrorCode.STEAM_API);
         }
         final var games = new ArrayList<Game>();
@@ -156,7 +156,7 @@ public final class SteamWebApi implements AutoCloseable {
             throw new StoneException(ErrorCode.STEAM_API);
         }
         final var definitions = schema.path(GAME_STATS_KEY).path(ACHIEVEMENTS_KEY);
-        if (definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty())) {
+        if (hasNoAchievementDefinitions(definitions)) {
             return new AchievementList(List.of(), ErrorCode.NONE);
         }
         if (!definitions.isArray())
@@ -296,5 +296,13 @@ public final class SteamWebApi implements AutoCloseable {
 
     private static String encode(final String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static boolean hasInvalidGameEntries(final int count, final JsonNode entries) {
+        return count < 0 || (count > 0 && !entries.isArray());
+    }
+
+    private static boolean hasNoAchievementDefinitions(final JsonNode definitions) {
+        return definitions.isMissingNode() || definitions.isNull() || (definitions.isArray() && definitions.isEmpty());
     }
 }

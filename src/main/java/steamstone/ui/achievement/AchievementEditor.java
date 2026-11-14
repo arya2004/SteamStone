@@ -301,13 +301,12 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     }
 
     private void updateControls() {
-        final var editable = nativeReady && task == null && !committing.get() && preview.achievements().stream()
-                .anyMatch((final var a) -> a.state() != AchievementState.UNKNOWN);
+        final var editable = canEditAchievements();
         unlock.setDisable(!editable);
         lock.setDisable(!editable);
         reset.setDisable(!editable || preview.changeCount() == 0);
         commit.setDisable(!editable || preview.changeCount() == 0);
-        reload.setDisable(game == null || task != null || committing.get());
+        reload.setDisable(!canReloadAchievements());
         list.setDisable(committing.get());
         commit.setText(committing.get() ? "Saving…" : "Save changes");
         commit.setTooltip(preview.changeCount() == 0 ? null :
@@ -315,7 +314,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     }
 
     private void commit() {
-        if (!nativeReady || committing.get() || preview.changeCount() == 0)
+        if (!canSaveChanges())
             return;
         final var desired = preview.changes();
         final var expected = new LinkedHashMap<String, Boolean>();
@@ -397,5 +396,18 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         button.setId(id);
         button.getStyleClass().add("secondary-button");
         return button;
+    }
+
+    private boolean canEditAchievements() {
+        return nativeReady && task == null && !committing.get() && preview.achievements().stream()
+                .anyMatch((final var achievement) -> achievement.state() != AchievementState.UNKNOWN);
+    }
+
+    private boolean canReloadAchievements() {
+        return game != null && task == null && !committing.get();
+    }
+
+    private boolean canSaveChanges() {
+        return nativeReady && !committing.get() && preview.changeCount() > 0;
     }
 }

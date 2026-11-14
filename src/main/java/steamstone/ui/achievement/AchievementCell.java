@@ -49,7 +49,7 @@ public final class AchievementCell extends ListCell<Achievement> {
             row.getStyleClass().add("changed-row");
         check.setSelected(unlocked);
         check.setIndeterminate(unknown);
-        check.setDisable(unknown || !editor.nativeReady() || editor.committingProperty().get());
+        check.setDisable(!canEditAchievement(achievement));
         check.setAccessibleText("Unlock state: " + achievement.name());
         image.setImage(editor.icon(achievement));
         name.setText(achievement.name());
@@ -88,5 +88,10 @@ public final class AchievementCell extends ListCell<Achievement> {
                 editor.changed();
             }
         });
+    }
+
+    private boolean canEditAchievement(final Achievement achievement) {
+        return achievement.state() != AchievementState.UNKNOWN && editor.nativeReady()
+                && !editor.committingProperty().get();
     }
 }

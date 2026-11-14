@@ -5,7 +5,9 @@ import com.github.javakeyring.Keyring;
 import com.github.javakeyring.KeyringStorageType;
 import com.github.javakeyring.PasswordAccessException;
 import com.github.javakeyring.BackendNotSupportedException;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import steamstone.exception.ErrorCode;
 import steamstone.exception.StoneException;
@@ -78,8 +80,12 @@ public final class ConnectionStore {
     }
 
     private void validate(final SavedConnection saved) {
-        if (saved == null || saved.apiKey() == null || !saved.apiKey().matches(KEY_PATTERN)
-                || saved.profile() == null || saved.profile().isBlank())
+        if (!isValidSavedConnection(saved))
             throw new StoneException(ErrorCode.SAVED_ACCOUNT);
+    }
+
+    private static boolean isValidSavedConnection(final SavedConnection saved) {
+        return saved != null && saved.apiKey() != null && saved.apiKey().matches(KEY_PATTERN)
+                && saved.profile() != null && !saved.profile().isBlank();
     }
 }

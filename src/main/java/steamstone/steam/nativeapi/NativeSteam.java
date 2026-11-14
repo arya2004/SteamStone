@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import steamstone.exception.ErrorCode;
@@ -48,8 +49,7 @@ public final class NativeSteam {
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             builder.redirectError(ProcessBuilder.Redirect.DISCARD);
             try (final var process = new WorkerProcess(builder)) {
-                if (!process.await(SESSION_TIMEOUT_SECONDS) || process.exitValue() != SUCCESS_EXIT_CODE
-                        || !Files.isRegularFile(output)) {
+                if (workerResponseUnavailable(process, output)) {
                     return new Response(request.appId(), request.steamId(), Status.UNKNOWN,
                             ErrorCode.STEAM_STORAGE, Map.of());
                 }
@@ -85,5 +85,10 @@ public final class NativeSteam {
                 }
             }
         }
+    }
+
+    private static boolean workerResponseUnavailable(final WorkerProcess process, final Path output) {
+        return !process.await(SESSION_TIMEOUT_SECONDS) || process.exitValue() != SUCCESS_EXIT_CODE
+                || !Files.isRegularFile(output);
     }
 }

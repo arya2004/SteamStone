@@ -55,10 +55,14 @@ public final class StoneException extends RuntimeException {
 
     private static Throwable unwrap(final Throwable e) {
         var cause = e;
-        while ((cause instanceof CompletionException || cause instanceof ExecutionException)
-                && cause.getCause() != null && cause.getCause() != cause) {
+        while (hasWrappedCause(cause)) {
             cause = cause.getCause();
         }
         return cause;
+    }
+
+    private static boolean hasWrappedCause(final Throwable cause) {
+        return (cause instanceof CompletionException || cause instanceof ExecutionException)
+                && cause.getCause() != null && cause.getCause() != cause;
     }
 }

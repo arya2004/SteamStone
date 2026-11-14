@@ -42,7 +42,7 @@ public final class WorkerLauncher {
         final var installed = System.getProperty(PACKAGED_LAUNCHER_PROPERTY);
         if (installed != null) {
             final var launcher = Path.of(installed);
-            if (!launcher.isAbsolute() || !Files.isRegularFile(launcher) || !Files.isExecutable(launcher)) {
+            if (!isInstalledLauncherExecutable(launcher)) {
                 throw new StoneException(ErrorCode.NATIVE_RUNTIME);
             }
             command.add(launcher.normalize().toString());
@@ -73,5 +73,9 @@ public final class WorkerLauncher {
         }
         command.add(WORKER_ARGUMENT);
         return command;
+    }
+
+    private static boolean isInstalledLauncherExecutable(final Path launcher) {
+        return launcher.isAbsolute() && Files.isRegularFile(launcher) && Files.isExecutable(launcher);
     }
 }

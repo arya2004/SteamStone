@@ -2,6 +2,7 @@ package steamstone.steam;
 
 import com.google.inject.util.Modules;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -50,9 +51,7 @@ public class AchievementApiTest {
             server.createContext("/", (final var exchange) -> {
                 try {
                     calls.incrementAndGet();
-                    credentialsCorrect &= KEY.equals(exchange.getRequestHeaders().getFirst("x-webapi-key"))
-                            && !exchange.getRequestURI().toString().contains(KEY)
-                            && "GET".equals(exchange.getRequestMethod());
+                    credentialsCorrect &= isCredentialSafeGetRequest(exchange);
                     final var isSchema = exchange.getRequestURI().getPath().contains("GetSchemaForGame/v2");
                     final var body = (isSchema ? schema : player).getBytes(StandardCharsets.UTF_8);
                     exchange.sendResponseHeaders(isSchema ? 200 : playerStatus, body.length);
@@ -154,4 +153,11 @@ public class AchievementApiTest {
         assertThrows(StoneException.class, () -> api.loadAchievements("bad", ID, 10));
         assertEquals(0, calls.get());
     }
+
+    private static boolean isCredentialSafeGetRequest(final HttpExchange exchange) {
+        return KEY.equals(exchange.getRequestHeaders().getFirst("x-webapi-key"))
+                && !exchange.getRequestURI().toString().contains(KEY)
+                && "GET".equals(exchange.getRequestMethod());
+    }
+
 }

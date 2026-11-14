@@ -54,10 +54,7 @@ public final class SteamProfile {
                 throw new StoneException(ErrorCode.INVALID_INPUT, e);
             }
             // Never send the API key to a user-provided host.
-            if (!HTTPS_SCHEME.equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null ||
-                    uri.getPort() != DEFAULT_PORT
-                    || !(COMMUNITY_HOST.equalsIgnoreCase(uri.getHost())
-                    || WWW_COMMUNITY_HOST.equalsIgnoreCase(uri.getHost()))) {
+            if (!isSteamCommunityUrl(uri)) {
                 throw new StoneException(ErrorCode.INVALID_INPUT);
             }
             final var parts = uri.getPath().replaceAll(TRAILING_SLASH_PATTERN, EMPTY_VALUE).split(PATH_SEPARATOR);
@@ -80,5 +77,11 @@ public final class SteamProfile {
 
     private static boolean validVanity(final String value) {
         return value.matches(VANITY_NAME_PATTERN);
+    }
+
+    private static boolean isSteamCommunityUrl(final URI uri) {
+        return HTTPS_SCHEME.equalsIgnoreCase(uri.getScheme()) && uri.getRawUserInfo() == null
+                && uri.getPort() == DEFAULT_PORT && (COMMUNITY_HOST.equalsIgnoreCase(uri.getHost())
+                || WWW_COMMUNITY_HOST.equalsIgnoreCase(uri.getHost()));
     }
 }

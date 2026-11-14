@@ -37,8 +37,7 @@ public final class Response {
                     @JsonProperty(STATUS) final Status status,
                     @JsonProperty(ERROR_CODE) final ErrorCode errorCode,
                     @JsonProperty(ACHIEVEMENTS) final Map<String, Entry> achievements) {
-        if (status == null || errorCode == null
-                || ((status == Status.READ || status == Status.CONFIRMED) != (errorCode == ErrorCode.NONE))) {
+        if (!hasConsistentOutcome(status, errorCode)) {
             throw new StoneException(ErrorCode.STEAM_SESSION);
         }
         this.appId = appId;
@@ -51,5 +50,10 @@ public final class Response {
     @JsonProperty(value = MESSAGE, access = JsonProperty.Access.READ_ONLY)
     public String message() {
         return status == Status.CONFIRMED ? "Changes saved to Steam." : errorCode.message();
+    }
+
+    private static boolean hasConsistentOutcome(final Status status, final ErrorCode errorCode) {
+        return status != null && errorCode != null
+                && ((status == Status.READ || status == Status.CONFIRMED) == (errorCode == ErrorCode.NONE));
     }
 }

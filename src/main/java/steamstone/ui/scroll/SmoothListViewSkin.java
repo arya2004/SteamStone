@@ -59,11 +59,9 @@ public final class SmoothListViewSkin<T> extends ListViewSkin<T> {
     }
 
     private void scroll(final ScrollEvent event) {
-        if (event.isControlDown() || event.isMetaDown() || event.isShiftDown()
-                || getSkinnable().isDisabled() || event.getDeltaY() == 0)
+        if (shouldIgnoreScroll(event))
             return;
-        if (gesture || event.isInertia() || event.isDirect()
-                || event.getTextDeltaYUnits() == ScrollEvent.VerticalTextScrollUnits.NONE) {
+        if (isNativeScrollGesture(event)) {
             cancel();
             getVirtualFlow().scrollPixels(-event.getDeltaY());
         } else {
@@ -75,8 +73,7 @@ public final class SmoothListViewSkin<T> extends ListViewSkin<T> {
                     event.getTextDeltaY() * (event.getTextDeltaYUnits() == ScrollEvent.VerticalTextScrollUnits.PAGES
                             ? flow.getHeight() : LINE_PIXELS);
             final var current = flow.getPosition();
-            final var base = animation != null && animation.getStatus() == Animation.Status.RUNNING
-                    && Math.signum(target - current) == -Math.signum(pixels) ? target : current;
+            final var base = isContinuingWheelDirection(current, pixels) ? target : current;
             cancel();
             target = Math.clamp(base - pixels / range, 0, 1);
             animation = new Timeline(new KeyFrame(Duration.ZERO, new KeyValue(flow.positionProperty(), current)),
@@ -93,5 +90,20 @@ public final class SmoothListViewSkin<T> extends ListViewSkin<T> {
             getVirtualFlow().setPosition(position);
             animation = null;
         }
+    }
+
+    private boolean shouldIgnoreScroll(final ScrollEvent event) {
+        return event.isControlDown() || event.isMetaDown() || event.isShiftDown()
+                || getSkinnable().isDisabled() || event.getDeltaY() == 0;
+    }
+
+    private boolean isNativeScrollGesture(final ScrollEvent event) {
+        return gesture || event.isInertia() || event.isDirect()
+                || event.getTextDeltaYUnits() == ScrollEvent.VerticalTextScrollUnits.NONE;
+    }
+
+    private boolean isContinuingWheelDirection(final double current, final double pixels) {
+        return animation != null && animation.getStatus() == Animation.Status.RUNNING
+                && Math.signum(target - current) == -Math.signum(pixels);
     }
 }
