@@ -10,6 +10,9 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.SeparatorMenuItem;
+import steamstone.ui.AppMenus;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tooltip;
@@ -59,7 +62,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
     private final Button unlock = button("Unlock all", "unlock-all");
     private final Button lock = button("Lock all", "lock-all");
     private final Button reset = button("Reset", "reset-preview");
-    private final Button commit = button("Commit", "commit-preview");
+    private final Button commit = button("Save changes", "commit-preview");
     private final Button reload = button("↻", "reload-achievements");
     private final Map<String, Image> icons = new LinkedHashMap<>(32, .75f, true);
     private AchievementPreview preview = new AchievementPreview(List.of());
@@ -84,7 +87,7 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         final var heading = new VBox(2, title, subtitle);
         heading.setMinWidth(0);
         HBox.setHgrow(heading, Priority.ALWAYS);
-        commit.getStyleClass().setAll("primary-button");
+        commit.getStyleClass().add("primary-button");
         reload.setTooltip(new Tooltip("Reload achievements"));
         reset.setTooltip(new Tooltip("Reset local changes"));
         final var header = new HBox(7, heading, reload, unlock, lock, reset, commit);
@@ -202,6 +205,16 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         requests.execute(next);
     }
 
+    public Menu menu() {
+        final var menu = new Menu("Achievements");
+        menu.getItems().addAll(AppMenus.action("Reload achievements", "Shortcut+Shift+R", reload),
+                new SeparatorMenuItem(), AppMenus.action("Unlock all", null, unlock),
+                AppMenus.action("Lock all", null, lock), new SeparatorMenuItem(),
+                AppMenus.action("Reset preview", "Shortcut+Shift+Z", reset),
+                AppMenus.action("Save changes to Steam", "Shortcut+S", commit));
+        return menu;
+    }
+
     public AchievementPreview preview() {
         return preview;
     }
@@ -235,9 +248,9 @@ public final class AchievementEditor extends VBox implements AutoCloseable {
         commit.setDisable(!editable || preview.changeCount() == 0);
         reload.setDisable(game == null || task != null || committing.get());
         list.setDisable(committing.get());
-        commit.setText(committing.get() ? "Saving…" : "Commit");
+        commit.setText(committing.get() ? "Saving…" : "Save changes");
         commit.setTooltip(preview.changeCount() == 0 ? null :
-                new Tooltip("Commit " + preview.changeCount() + " pending change(s)"));
+                new Tooltip("Save " + preview.changeCount() + " pending change(s)"));
     }
 
     public ReadOnlyBooleanProperty committingProperty() {

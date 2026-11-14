@@ -1,74 +1,74 @@
 .root {
     -fx-font-family: "System";
     -fx-font-size: 13px;
-    -fx-background-color: #1b2838;
-    -fx-text-fill: #e8edf3;
-    -fx-accent: #66c0f4;
-    -fx-focus-color: #66c0f4;
+    -fx-background-color: #111216;
+    -fx-text-fill: #e9eaf0;
+    -fx-accent: #9aafff;
+    -fx-focus-color: #9aafff;
     -fx-faint-focus-color: transparent;
 }
 
 .label {
-    -fx-text-fill: #e8edf3;
+    -fx-text-fill: #e9eaf0;
 }
 
 .sidebar {
-    -fx-background-color: #171d25;
-    -fx-padding: 26 16 20 16;
-    -fx-border-color: transparent #26303b transparent transparent;
+    -fx-background-color: #191a20;
+    -fx-padding: 24 18 20 18;
+    -fx-border-color: transparent #2a2b33 transparent transparent;
     -fx-border-width: 0 1 0 0;
 }
 
 .brand-name {
-    -fx-font-size: 14px;
+    -fx-font-size: 19px;
     -fx-font-weight: bold;
-    -fx-text-fill: #e5edf5;
+    -fx-text-fill: #f4f4f7;
 }
 
 .brand-caption {
-    -fx-font-size: 10px;
-    -fx-text-fill: #7b8998;
+    -fx-font-size: 11px;
+    -fx-text-fill: #8d909e;
 }
 
 .eyebrow {
-    -fx-font-size: 10px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: #7c8a9b;
+    -fx-text-fill: #9295a3;
 }
 
 .separator .line {
-    -fx-border-color: #25303a transparent transparent transparent;
+    -fx-border-color: #2b2d36 transparent transparent transparent;
 }
 
 .connection-page {
-    -fx-padding: 35 42 20 42;
+    -fx-padding: 30 40 24 40;
 }
 
 .accent-eyebrow {
-    -fx-text-fill: #66c0f4;
+    -fx-text-fill: #9aafff;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
 }
 
 .welcome-title {
-    -fx-font-size: 40px;
+    -fx-font-size: 36px;
     -fx-font-weight: bold;
-    -fx-text-fill: #f2f4f7;
+    -fx-text-fill: #f8f8fa;
     -fx-line-spacing: -4;
 }
 
 .welcome-subtitle {
     -fx-font-size: 13px;
-    -fx-text-fill: #9ca9b9;
+    -fx-text-fill: #a3a6b3;
     -fx-line-spacing: 4;
 }
 
 .connection-card {
-    -fx-background-color: #202d3d;
-    -fx-background-radius: 12;
-    -fx-border-color: #303c4a;
-    -fx-border-radius: 12;
-    -fx-padding: 24 28;
+    -fx-background-color: #1b1c23;
+    -fx-background-radius: 16;
+    -fx-border-color: #30313c;
+    -fx-border-radius: 16;
+    -fx-padding: 22 26;
 }
 
 .card-title {
@@ -77,37 +77,37 @@
 }
 
 .muted {
-    -fx-text-fill: #95a3b4;
+    -fx-text-fill: #a1a4b2;
     -fx-font-size: 12px;
 }
 
 .field-label {
     -fx-font-size: 9px;
     -fx-font-weight: bold;
-    -fx-text-fill: #b9c5d3;
+    -fx-text-fill: #c0c3cf;
 }
 
 .field-hint {
     -fx-font-size: 11px;
-    -fx-text-fill: #8293a6;
+    -fx-text-fill: #9397a8;
 }
 
 .text-field,
 .password-field {
-    -fx-background-color: #111821;
-    -fx-background-radius: 6;
-    -fx-border-color: #344252;
-    -fx-border-radius: 6;
+    -fx-background-color: #121318;
+    -fx-background-radius: 8;
+    -fx-border-color: #343642;
+    -fx-border-radius: 8;
     -fx-border-width: 1;
     -fx-padding: 11 13;
-    -fx-text-fill: #e9eff5;
-    -fx-prompt-text-fill: #75869a;
-    -fx-highlight-fill: #315b7b;
+    -fx-text-fill: #f0f1f5;
+    -fx-prompt-text-fill: #7f8395;
+    -fx-highlight-fill: #384770;
 }
 
 .text-field:focused,
 .password-field:focused {
-    -fx-border-color: #66c0f4;
+    -fx-border-color: #9aafff;
 }
 
 .button {
@@ -117,46 +117,46 @@
 }
 
 .primary-button {
-    -fx-background-color: #66c0f4;
-    -fx-text-fill: #122a3b;
-    -fx-background-radius: 6;
+    -fx-background-color: #9aafff;
+    -fx-text-fill: #141a35;
+    -fx-background-radius: 8;
     -fx-padding: 12 18;
 }
 
 .primary-button:hover {
-    -fx-background-color: #91d3fa;
+    -fx-background-color: #b7c5ff;
 }
 
 .primary-button:pressed {
-    -fx-background-color: #4ba6db;
+    -fx-background-color: #859ced;
 }
 
 .secondary-button {
-    -fx-background-color: #202b38;
-    -fx-text-fill: #d8e3ed;
-    -fx-background-radius: 6;
-    -fx-border-radius: 6;
-    -fx-border-color: #364555;
+    -fx-background-color: #272932;
+    -fx-text-fill: #dddfe8;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #3a3c49;
     -fx-padding: 10 16;
 }
 
 .secondary-button:hover {
-    -fx-background-color: #2b3a49;
+    -fx-background-color: #343641;
 }
 
 .text-button {
     -fx-background-color: transparent;
-    -fx-text-fill: #9cabbc;
+    -fx-text-fill: #a5a8b7;
     -fx-padding: 10 12;
 }
 
 .text-button:hover {
-    -fx-text-fill: #f0f5f8;
+    -fx-text-fill: #f5f5f8;
 }
 
 .button:focused {
-    -fx-border-color: #b7e3ff;
-    -fx-border-radius: 6;
+    -fx-border-color: #b7c6ff;
+    -fx-border-radius: 8;
 }
 
 .button:disabled {
@@ -171,12 +171,12 @@
 
 .privacy-note {
     -fx-font-size: 11px;
-    -fx-text-fill: #9aafc5;
+    -fx-text-fill: #9296a8;
 }
 
 .connect-footer {
     -fx-font-size: 10px;
-    -fx-text-fill: #738297;
+    -fx-text-fill: #777d90;
 }
 
 .list-view {
@@ -191,14 +191,15 @@
 }
 
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
-    -fx-background-color: #202d3d;
+    -fx-background-color: #1b1c23;
     -fx-padding: 0;
-    -fx-border-color: transparent transparent #1b2838 transparent;
+    -fx-border-color: transparent transparent #111216 transparent;
     -fx-border-width: 0 0 3 0;
 }
 
 .sidebar-game-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
-    -fx-background-radius: 6;
+    -fx-border-width: 0;
+    -fx-background-radius: 8;
     -fx-background-color: transparent;
 }
 
@@ -214,11 +215,11 @@
 }
 
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
-    -fx-background-color: #202c39;
+    -fx-background-color: #252730;
 }
 
 .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
-    -fx-background-color: #24465f;
+    -fx-background-color: #303b60;
 }
 
 .game-row {
@@ -226,25 +227,25 @@
 }
 
 .game-cover {
-    -fx-background-color: #2a475e;
+    -fx-background-color: #2e354b;
     -fx-background-radius: 5;
 }
 
 .game-initial {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: #b1dafa;
+    -fx-text-fill: #bdcaff;
 }
 
 .game-name {
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #e2eaf2;
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #e0e2eb;
 }
 
 .library-status {
     -fx-font-size: 10px;
-    -fx-text-fill: #8396a8;
+    -fx-text-fill: #9498aa;
 }
 
 .empty-title {
@@ -262,7 +263,7 @@
 }
 
 .scroll-bar .thumb {
-    -fx-background-color: #374553;
+    -fx-background-color: #474b5c;
     -fx-background-radius: 8;
 }
 
@@ -279,8 +280,8 @@
 }
 
 .game-count-badge {
-    -fx-background-color: #2a475e;
-    -fx-text-fill: #b1dafa;
+    -fx-background-color: #2e354b;
+    -fx-text-fill: #bdcaff;
     -fx-background-radius: 5;
     -fx-padding: 4 8;
     -fx-font-size: 11px;
@@ -288,7 +289,7 @@
 }
 
 .sidebar-empty {
-    -fx-text-fill: #8293a6;
+    -fx-text-fill: #9397a8;
     -fx-font-size: 12px;
     -fx-text-alignment: center;
     -fx-padding: 20;
@@ -297,26 +298,27 @@
 .sidebar-account-name {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-text-fill: #c5d7e2;
+    -fx-text-fill: #e0e2eb;
 }
 
 .hyperlink {
-    -fx-text-fill: #66c0f4;
+    -fx-text-fill: #9aafff;
     -fx-padding: 0;
     -fx-font-size: 11px;
 }
 
 .connection-card .check-box {
-    -fx-text-fill: #b9c5d3;
+    -fx-text-fill: #c0c3cf;
     -fx-font-size: 11px;
 }
 
 .sidebar-game-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
-    -fx-background-color: #24465f;
+    -fx-background-color: #303b60;
 }
 
 .editor-header {
-    -fx-padding: 10 12;
+    -fx-background-color: #17181e;
+    -fx-padding: 18 20;
 }
 
 .editor-header .button {
@@ -325,61 +327,61 @@
 }
 
 .editor-game-name {
-    -fx-font-size: 14px;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #edf3f7;
+    -fx-text-fill: #f3f3f7;
 }
 
 .editor-game-id {
-    -fx-font-size: 9px;
-    -fx-text-fill: #8c9fb2;
+    -fx-font-size: 10px;
+    -fx-text-fill: #9298ad;
 }
 
 .editor-empty-symbol {
     -fx-font-size: 46px;
-    -fx-text-fill: #66c0f4;
+    -fx-text-fill: #9aafff;
 }
 
 .editor-empty-description {
     -fx-font-size: 13px;
-    -fx-text-fill: #8fa2b5;
+    -fx-text-fill: #959bb0;
     -fx-text-alignment: center;
     -fx-line-spacing: 3;
 }
 
 .achievement-body {
-    -fx-padding: 6 8 8 8;
+    -fx-padding: 14 18 18 18;
 }
 
 .achievement-notice {
-    -fx-text-fill: #d9bc85;
+    -fx-text-fill: #e5c48b;
     -fx-font-size: 11px;
 }
 
 .achievement-row {
-    -fx-padding: 6 10;
-    -fx-background-radius: 6;
-    -fx-border-radius: 6;
+    -fx-padding: 6 12;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-border-width: 1;
 }
 
 .unlocked-row {
-    -fx-background-color: #213d52;
-    -fx-border-color: #315a75;
+    -fx-background-color: #1e2930;
+    -fx-border-color: #31464a;
 }
 
 .locked-row {
-    -fx-background-color: #252a34;
-    -fx-border-color: #3c4553;
+    -fx-background-color: #1d1f27;
+    -fx-border-color: #2d303d;
 }
 
 .unknown-row {
-    -fx-background-color: #322b22;
-    -fx-border-color: #625136;
+    -fx-background-color: #2b2722;
+    -fx-border-color: #504634;
 }
 
 .changed-row {
-    -fx-border-color: #c1dfed;
+    -fx-border-color: #9aafff;
 }
 
 .achievement-name {
@@ -389,17 +391,17 @@
 
 .achievement-description {
     -fx-font-size: 11px;
-    -fx-text-fill: #b4c0cb;
+    -fx-text-fill: #a0a5b6;
 }
 
 .achievement-state {
     -fx-font-size: 9px;
     -fx-font-weight: bold;
-    -fx-text-fill: #a7b7cc;
+    -fx-text-fill: #969eb4;
 }
 
 .unlocked-row .achievement-state {
-    -fx-text-fill: #8dd2fa;
+    -fx-text-fill: #94cfbb;
 }
 
 .unknown-row .achievement-state {
@@ -407,7 +409,7 @@
 }
 
 .achievement-cover {
-    -fx-background-color: #111a20;
+    -fx-background-color: #14161d;
     -fx-background-radius: 5;
 }
 
@@ -420,5 +422,69 @@
 
 .check-box:selected .mark,
 .check-box:indeterminate .mark {
-    -fx-background-color: #66c0f4;
+    -fx-background-color: #9aafff;
+}
+
+.menu-bar {
+    -fx-background-color: #191a20;
+    -fx-padding: 3 10;
+    -fx-border-color: transparent transparent #2a2b33 transparent;
+}
+
+.menu-bar .menu-button {
+    -fx-background-radius: 5;
+    -fx-padding: 5 10;
+}
+
+.menu-bar .menu-button:hover,
+.menu-bar .menu-button:showing,
+.menu-item:focused {
+    -fx-background-color: #38466c;
+}
+
+.context-menu {
+    -fx-background-color: #252730;
+    -fx-background-radius: 10;
+    -fx-border-color: #3a3d4a;
+    -fx-border-radius: 10;
+    -fx-padding: 6;
+}
+
+.menu-item {
+    -fx-padding: 7 12;
+    -fx-background-radius: 5;
+}
+
+.menu-item .accelerator-text {
+    -fx-fill: #a5abc1;
+}
+
+.tooltip {
+    -fx-background-color: #323644;
+    -fx-text-fill: #f1f2f7;
+    -fx-background-radius: 7;
+    -fx-padding: 8 12;
+}
+
+.dialog-pane {
+    -fx-background-color: #191a20;
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: #23252e;
+}
+
+.dialog-pane .button {
+    -fx-background-color: #343c58;
+    -fx-text-fill: #eef0fa;
+    -fx-background-radius: 7;
+    -fx-padding: 8 18;
+}
+
+.check-box:focused .box {
+    -fx-border-color: #b7c6ff;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #69718a;
 }

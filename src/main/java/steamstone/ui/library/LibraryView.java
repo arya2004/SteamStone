@@ -5,6 +5,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
+import steamstone.ui.AppMenus;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
@@ -52,6 +59,8 @@ import steamstone.ui.scroll.SmoothListViewSkin;
  */
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public final class LibraryView extends BorderPane implements AutoCloseable {
+    private static final String OS_NAME_PROPERTY = "os.name";
+    private static final String MAC_OS_PREFIX = "Mac";
     private static final String API_KEY_URL = "https://steamcommunity.com/dev/apikey";
     private final SteamWebApi api;
     private final ConnectionStore connection;
@@ -89,6 +98,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     private void initialize() {
         getStyleClass().add("app-root");
         setLeft(sidebar());
+        setTop(menuBar());
         getLeft().disableProperty().bind(editor.committingProperty());
         screens.getChildren().addAll(connectionScreen, editor, restoringScreen);
         restoringScreen.setId("restoring-connection");
@@ -145,6 +155,49 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         this.browser = browser;
     }
 
+    private MenuBar menuBar() {
+        final var file = new Menu("File");
+        file.getItems().addAll(AppMenus.action("Refresh library", "Shortcut+R", refreshButton),
+                AppMenus.action("Disconnect", "Shortcut+Shift+D", disconnectButton), new SeparatorMenuItem(),
+                AppMenus.command("Close window", "Shortcut+W", () -> {
+                    final var window = getScene().getWindow();
+                    window.fireEvent(new WindowEvent(window, WindowEvent.WINDOW_CLOSE_REQUEST));
+                }));
+        final var find = AppMenus.command("Find a game…", "Shortcut+F", () -> {
+            search.requestFocus();
+            search.selectAll();
+        });
+        find.disableProperty().bind(search.disabledProperty());
+        final var view = new Menu("View");
+        view.getItems().addAll(find, new SeparatorMenuItem(),
+                AppMenus.command("Minimize", "Shortcut+M", () -> ((Stage) getScene().getWindow()).setIconified(true)),
+                AppMenus.command("Toggle full screen",
+                        System.getProperty(OS_NAME_PROPERTY).startsWith(MAC_OS_PREFIX) ? "Shortcut+Ctrl+F" : "F11",
+                        () -> {
+                            final var stage = (Stage) getScene().getWindow();
+                            stage.setFullScreen(!stage.isFullScreen());
+                        }));
+        final var help = new Menu("Help");
+        help.getItems().addAll(AppMenus.command("Get a Steam Web API key…", null,
+                        () -> browser.accept(API_KEY_URL)), new SeparatorMenuItem(),
+                AppMenus.command("About SteamStone", null, () -> {
+                    final var about = new Alert(Alert.AlertType.INFORMATION);
+                    about.initOwner(getScene().getWindow());
+                    about.setTitle("About SteamStone");
+                    about.setHeaderText("SteamStone");
+                    about.setContentText(
+                            "Your games. Your progress.\n\nBrowse your Steam library and manage achievements. "
+                                    + "Changes stay in a local preview until you save them to Steam.");
+                    about.getDialogPane().getStylesheets().add(
+                            getClass().getResource("/styles/app.css").toExternalForm());
+                    about.showAndWait();
+                }));
+        final var bar = new MenuBar(file, view, editor.menu(), help);
+        bar.setId("app-menu");
+        bar.setUseSystemMenuBar(true);
+        return bar;
+    }
+
     private Node sidebar() {
         final var stone = new ImageView(AppIcon.load(40));
         stone.setFitWidth(40);
@@ -152,13 +205,13 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         stone.setPreserveRatio(true);
         stone.setAccessibleText("SteamStone logo");
         final var brand = new HBox(12, stone, new VBox(4,
-                label("STEAMSTONE", "brand-name"), label("Your achievement workspace.", "brand-caption")));
+                label("SteamStone", "brand-name"), label("Your games. Your progress.", "brand-caption")));
         brand.setAlignment(Pos.CENTER_LEFT);
 
         gameCount.getStyleClass().add("game-count-badge");
         final var grow = new Region();
         HBox.setHgrow(grow, Priority.ALWAYS);
-        final var heading = new HBox(10, label("ALL GAMES", "eyebrow"), grow, gameCount);
+        final var heading = new HBox(10, label("Library", "eyebrow"), grow, gameCount);
         heading.setAlignment(Pos.CENTER_LEFT);
         VBox.setMargin(heading, new Insets(30, 0, 0, 0));
         search.setPromptText("Search games…");
@@ -191,7 +244,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         libraryStatus.setId("library-status");
         hide(libraryStatus);
         final var bottom =
-                new VBox(10, new Separator(), label("ACCOUNT", "eyebrow"), profileName, actions, libraryStatus);
+                new VBox(10, new Separator(), label("Steam account", "eyebrow"), profileName, actions, libraryStatus);
         final var box = new VBox(14, brand, heading, search, gameList, bottom);
         box.setPrefWidth(300);
         box.setMinWidth(300);
@@ -201,11 +254,11 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
     }
 
     private VBox connectionScreen() {
-        final var eyebrow = label("YOUR GAMES. YOUR SPACE.", "accent-eyebrow");
-        final var title = label("Your Steam library,\nin one place.", "welcome-title");
+        final var eyebrow = label("A LITTLE PROGRESS, EVERY DAY", "accent-eyebrow");
+        final var title = label("Make room for\nyour next achievement.", "welcome-title");
         final var subtitle =
-                label("Bring your collection into SteamStone. Connect once, then browse\nevery game Steam makes " +
-                                "available to your account.",
+                label("Connect your Steam library. Explore your games and manage your achievements in one quiet " +
+                                "workspace.",
                         "welcome-subtitle");
         subtitle.setWrapText(true);
         final var intro = new VBox(14, eyebrow, title, subtitle);
@@ -218,9 +271,9 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
         profileField.setPromptText("steamcommunity.com/id/your-name or SteamID64");
         profileField.setAccessibleText("Steam profile URL or SteamID64");
         profileField.setPrefHeight(44);
-        final var keyLabel = label("STEAM WEB API KEY", "field-label");
+        final var keyLabel = label("Steam Web API key", "field-label");
         keyLabel.setLabelFor(keyField);
-        final var profileLabel = label("STEAM PROFILE", "field-label");
+        final var profileLabel = label("Steam profile", "field-label");
         profileLabel.setLabelFor(profileField);
         final var keyInput = new VBox(8, keyLabel, keyField);
         final var keyLink = new Hyperlink("Get a Steam Web API key ↗");
@@ -249,7 +302,7 @@ public final class LibraryView extends BorderPane implements AutoCloseable {
                         "privacy-note");
         privacy.setWrapText(true);
         final var footer = label("No game installs needed  ·  Read-only library access", "connect-footer");
-        final var body = new VBox(22, intro, card, privacy, footer);
+        final var body = new VBox(18, intro, card, privacy, footer);
         body.setMaxWidth(630);
         body.setAlignment(Pos.TOP_LEFT);
         final var page = new VBox(body);

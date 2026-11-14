@@ -11,6 +11,8 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.MenuBar;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
@@ -105,6 +107,13 @@ public final class FeatureCheckApplication extends Application {
                 case 0 -> {
                     if (((Button) view.lookup("#load-library")).isDisabled())
                         return;
+                    final var menus = (MenuBar) view.lookup("#app-menu");
+                    assertTrue(menus.isUseSystemMenuBar());
+                    assertEquals(4, menus.getMenus().size());
+                    assertTrue(menus.getMenus().get(0).getItems().getFirst().isDisable());
+                    final var save = menus.getMenus().get(2).getItems().getLast();
+                    assertEquals(KeyCombination.keyCombination("Shortcut+S"), save.getAccelerator());
+                    assertTrue(save.isDisable());
                     assertFalse(((CheckBox) view.lookup("#remember-account")).isSelected());
                     ((Hyperlink) view.lookup("#get-api-key")).fire();
                     assertEquals("https://steamcommunity.com/dev/apikey", openedLink.get());
@@ -117,6 +126,13 @@ public final class FeatureCheckApplication extends Application {
                 case 1 -> {
                     if (!loaded("First"))
                         return;
+                    final var menus = (MenuBar) view.lookup("#app-menu");
+                    assertFalse(menus.getMenus().get(0).getItems().getFirst().isDisable());
+                    final var search = (TextField) view.lookup("#search-games");
+                    search.setText("Find this game");
+                    menus.getMenus().get(1).getItems().getFirst().fire();
+                    assertEquals("Find this game", search.getSelectedText());
+                    search.clear();
                     assertTrue(store.saved().isPresent());
                     assertEquals(KEY, store.saved().orElseThrow().apiKey());
                     assertEquals(null, view.lookup("#account-menu"));
