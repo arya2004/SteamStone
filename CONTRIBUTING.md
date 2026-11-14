@@ -63,8 +63,10 @@ The Apple app bundle needs a positive major version in its metadata. For a proje
 
 ## Releases (maintainers)
 
+[SteamStone v1.0.0](https://github.com/arya2004/SteamStone/releases/tag/v1.0.0) is released. Follow these steps for subsequent releases; never reuse an existing release tag.
+
 1. Update the project version in `pom.xml` to a plain `major.minor.patch` version and merge the intended changes.
-2. Create and push a matching tag, such as `v1.0.0` for project version `1.0.0`.
+2. Create and push a matching tag, such as `v1.0.1` for project version `1.0.1`.
 3. The **Release** workflow tests and packages on Apple Silicon macOS, Intel macOS, Windows x64, and Linux x64. Each job checks its bundled native libraries without account access. If any job fails, no release is created.
 4. After all jobs pass, the workflow creates a **draft GitHub release** containing five downloads (two Mac archives, the Windows installer and portable ZIP, and the Linux archive), their checksums, and generated notes. The Windows job also extracts the portable ZIP and checks its bundled worker without signing into Steam.
 5. Review the notes and test the downloads with Steam on the platforms you can verify. Label remaining limitations, then publish the draft when ready.

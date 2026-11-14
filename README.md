@@ -23,7 +23,7 @@ Browsing and checkbox changes never save achievements automatically. Steam must 
 
 ## Download
 
-Choose an asset from the [latest published release](https://github.com/arya2004/SteamStone/releases/latest). **Java is included.** The repository ZIP contains source code, not a runnable app.
+Download [SteamStone v1.0.0](https://github.com/arya2004/SteamStone/releases/tag/v1.0.0) and choose the asset for your computer. **Java is included.** The repository ZIP contains source code, not a runnable app.
 
 | Computer | Download | Open |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Choose an asset from the [latest published release](https://github.com/arya2004/
 
 Windows and Linux archives must remain together with their bundled runtime. Linux requires a graphical desktop and GTK 3. Builds have no trusted publisher signature and are not notarized; OS warnings are expected. See [installation and verification](docs/guide.md#installation).
 
-**v1.0.0 is being prepared, not yet published.** Apple Silicon packaging and fixture checks have passed locally; Intel Mac, Windows, and Linux still require runtime and installation verification.
+**v1.0.0 is released.** Apple Silicon packaging and fixture checks have passed locally; Intel Mac, Windows, and Linux still require runtime and installation verification.
 
 ## First-time setup
 

@@ -11,7 +11,7 @@ image: /assets/connection.png
 
 Browse your Steam library and manage achievements in one workspace. Stage changes, review your preview, and save explicitly through Steam.
 
-[Download the latest published release](https://github.com/arya2004/SteamStone/releases/latest) · [User guide]({{ '/guide' | relative_url }}) · [Source code](https://github.com/arya2004/SteamStone)
+[Download SteamStone v1.0.0](https://github.com/arya2004/SteamStone/releases/tag/v1.0.0) · [User guide]({{ '/guide' | relative_url }}) · [Source code](https://github.com/arya2004/SteamStone)
 
 ![SteamStone's connection screen on macOS]({{ '/assets/connection.png' | relative_url }})
 
@@ -33,7 +33,7 @@ Browse your Steam library and manage achievements in one workspace. Stage change
 
 Java is bundled. Editing requires Steam running under the same account. Some games restrict achievement changes. Builds have no trusted publisher signature and are not notarized; see the [installation guide]({{ '/guide#installation' | relative_url }}) before opening a download.
 
-**v1.0.0 is in preparation.** The download button points to the latest release that has actually been published. Apple Silicon packaging and fixture checks have passed locally; Intel Mac, Windows, and Linux still require runtime and installation verification.
+**SteamStone v1.0.0 is released.** Choose the download for your platform from the release page. Apple Silicon packaging and fixture checks have passed locally; Intel Mac, Windows, and Linux still require runtime and installation verification.
 
 ### Get started
 

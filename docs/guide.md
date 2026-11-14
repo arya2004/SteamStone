@@ -5,7 +5,7 @@ title: SteamStone user guide
 
 # SteamStone user guide
 
-[Website](https://arya2004.github.io/SteamStone/) · [Downloads](https://github.com/arya2004/SteamStone/releases/latest) · [Report a problem](https://github.com/arya2004/SteamStone/issues/new/choose)
+[Website](https://arya2004.github.io/SteamStone/) · [Download v1.0.0](https://github.com/arya2004/SteamStone/releases/tag/v1.0.0) · [Report a problem](https://github.com/arya2004/SteamStone/issues/new/choose)
 
 ## Installation
 
@@ -37,7 +37,7 @@ On Windows, compare the following result with the checksum file:
 Get-FileHash .\SteamStone-1.0.0-windows-x64-setup.exe -Algorithm SHA256
 ```
 
-These v1.0.0 filenames become available only after publication; substitute the downloaded version. For releases built with the attestation workflow, GitHub CLI can also verify build provenance:
+These examples use the released v1.0.0 filenames; substitute your downloaded version when checking another release. For releases built with the attestation workflow, GitHub CLI can also verify build provenance:
 
 ```sh
 gh attestation verify SteamStone-1.0.0-macos-arm64.zip --repo arya2004/SteamStone

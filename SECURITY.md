@@ -6,4 +6,4 @@ For a sensitive vulnerability, use the repository's **Security → Report a vuln
 
 Include the affected version or commit, operating system, impact, and a minimal reproduction using synthetic data. Do not test achievement writes against another person's account. No response-time guarantee or bug bounty is offered.
 
-Only the latest published version is targeted for fixes. v1.0.0 is currently in preparation. Downloads are not signed by a trusted Windows/macOS publisher; checksums establish file integrity, while GitHub attestations, when present, identify the build workflow. Neither guarantees that an application is free of vulnerabilities.
+SteamStone v1.0.0 is released. Only the latest published version is targeted for fixes. Downloads are not signed by a trusted Windows/macOS publisher; checksums establish file integrity, while GitHub attestations, when present, identify the build workflow. Neither guarantees that an application is free of vulnerabilities.

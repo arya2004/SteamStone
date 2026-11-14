@@ -1,6 +1,6 @@
-# SteamStone
+# SteamStone v1.0.0
 
-Browse your Steam library and stage achievement changes before explicitly saving them through Steam.
+SteamStone v1.0.0 is released. Browse your Steam library and stage achievement changes before explicitly saving them through Steam.
 
 Java is included. Keep this application bundle or folder together. Windows portable: run SteamStone.exe. Linux: run bin/SteamStone. macOS: open SteamStone.app. Linux needs a graphical desktop and GTK 3.
 
